@@ -6,6 +6,7 @@ import Courses from './pages/Courses';
 import AuthPage from './components/Login';
 import CoursesDetail from './pages/CourseDetail';
 import Footer from './components/Footer';
+import Profile from './pages/Profile';
 
 // Define ComingSoon component before using it
 const ComingSoon = ({ title }) => {
@@ -34,6 +35,7 @@ const App = () => {
             <Route path="/signup" element={<AuthPage initialMode="signup" />} />
             <Route path="/live-course" element={<ComingSoon title="Live Courses" />} />
             <Route path="/request-callback" element={<ComingSoon title="Request Callback" />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </div>
         <Footer />
