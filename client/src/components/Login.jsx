@@ -1,6 +1,43 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Github, Twitter, Camera } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Github, Twitter, Camera, CheckCircle2, XCircle } from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+const PasswordStrengthIndicator = ({ password }) => {
+  const calculateStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+  };
+
+  const strength = calculateStrength(password);
+  const strengthLabels = ['Very Weak', 'Weak', 'Medium', 'Strong', 'Very Strong'];
+  const strengthColors = [
+    'bg-red-500', 
+    'bg-orange-500', 
+    'bg-yellow-500', 
+    'bg-green-500', 
+    'bg-teal-500'
+  ];
+
+  return (
+    <div className="flex items-center space-x-2 mt-2">
+      <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${strengthColors[strength - 1] || 'bg-slate-600'}`} 
+          style={{ width: `${(strength / 5) * 100}%` }}
+        ></div>
+      </div>
+      <span className={`text-xs ${strengthColors[strength - 1] || 'text-slate-400'}`}>
+        {strengthLabels[strength - 1] || 'Very Weak'}
+      </span>
+    </div>
+  );
+};
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,10 +48,30 @@ const AuthPage = () => {
     password: '',
     profilePic: null,
   });
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    specialChar: false
+  });
   const [profilePicPreview, setProfilePicPreview] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
+  // Validate password in real-time
+  useEffect(() => {
+    if (!isLogin) {
+      setPasswordValidation({
+        length: formData.password.length >= 8,
+        uppercase: /[A-Z]/.test(formData.password),
+        lowercase: /[a-z]/.test(formData.password),
+        number: /[0-9]/.test(formData.password),
+        specialChar: /[^A-Za-z0-9]/.test(formData.password)
+      });
+    }
+  }, [formData.password, isLogin]);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -23,26 +80,20 @@ const AuthPage = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setError('File size should be less than 5MB');
         return;
       }
-
-      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
       if (!allowedTypes.includes(file.type)) {
         setError('Only JPEG, PNG, and GIF images are allowed');
         return;
       }
-
       setFormData((prev) => ({ ...prev, profilePic: file }));
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePicPreview(reader.result);
-      };
+      reader.onloadend = () => setProfilePicPreview(reader.result);
       reader.readAsDataURL(file);
-      setError(''); // Clear any previous errors
+      setError('');
     }
   };
 
@@ -53,44 +104,28 @@ const AuthPage = () => {
 
     try {
       if (!isLogin) {
-        // Enhanced error handling for signup
-        if (!formData.name) {
-          throw new Error('Name is required');
-        }
-        if (!formData.email) {
-          throw new Error('Email is required');
-        }
-        if (formData.password.length < 8) {
-          throw new Error('Password must be at least 8 characters long');
-        }
+        // Validate signup form
+        if (!formData.name) throw new Error('Name is required');
+        if (!formData.email) throw new Error('Email is required');
+        
+        // Comprehensive password validation
+        const passwordValidationFailed = Object.values(passwordValidation).some(v => !v);
+        if (passwordValidationFailed) throw new Error('Password does not meet requirements');
 
-        // Profile picture upload with improved error handling
         let profilePicUrl = '';
         if (formData.profilePic) {
           const cloudinaryData = new FormData();
           cloudinaryData.append('file', formData.profilePic);
-          cloudinaryData.append('upload_preset', 'Hostel');
-          cloudinaryData.append('cloud_name', 'vipinyadav01');
+          cloudinaryData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+          cloudinaryData.append('cloud_name', import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
 
-          try {
-            const cloudinaryRes = await axios.post(
-              'https://api.cloudinary.com/v1_1/vipinyadav01/image/upload',
-              cloudinaryData,
-              {
-                headers: {
-                  'Content-Type': 'multipart/form-data'
-                },
-                timeout: 10000 // 10 second timeout
-              }
-            );
-            profilePicUrl = cloudinaryRes.data.secure_url;
-          } catch (uploadError) {
-            console.error('Cloudinary upload error:', uploadError);
-            throw new Error('Failed to upload profile picture. Please try again.');
-          }
+          const cloudinaryRes = await axios.post(
+            `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+            cloudinaryData
+          );
+          profilePicUrl = cloudinaryRes.data.secure_url;
         }
 
-        // Send signup data to backend
         const signupData = {
           name: formData.name,
           email: formData.email,
@@ -98,23 +133,17 @@ const AuthPage = () => {
           profilePic: profilePicUrl,
         };
 
-        const signupRes = await axios.post('http://localhost:5000/api/auth/signup', signupData);
-        console.log('Signup successful:', signupRes.data);
+        const signupRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/signup`, signupData);
+        localStorage.setItem('token', signupRes.data.token);
+        navigate('/');
       } else {
-        // Login logic
-        const loginData = {
-          email: formData.email,
-          password: formData.password,
-        };
-
-        const loginRes = await axios.post('http://localhost:5000/api/auth/login', loginData);
-        console.log('Login successful:', loginRes.data);
+        const loginData = { email: formData.email, password: formData.password };
+        const loginRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/login`, loginData);
+        localStorage.setItem('token', loginRes.data.token);
+        navigate('/');
       }
     } catch (err) {
-      // More detailed error handling
-      const errorMessage = err.response?.data?.message || 
-                           err.message || 
-                           'An unexpected error occurred';
+      const errorMessage = err.response?.data?.message || err.message || 'An unexpected error occurred';
       setError(errorMessage);
       console.error('Authentication error:', err);
     } finally {
@@ -131,13 +160,11 @@ const AuthPage = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-900 text-white">
-      {/* Left side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 relative overflow-hidden">
         <div className="absolute -top-32 -left-32 w-64 h-64 rounded-full bg-teal-500/20 blur-3xl"></div>
         <div className="absolute -bottom-32 -right-32 w-64 h-64 rounded-full bg-cyan-500/20 blur-3xl"></div>
 
         <div className="max-w-md w-full mx-auto relative z-10 bg-slate-900/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
-          {/* Logo */}
           <div className="mb-8 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center shadow-lg">
               <img src="/favicon-32x32.png" alt="Logo" className="w-6 h-6" />
@@ -147,7 +174,6 @@ const AuthPage = () => {
             </span>
           </div>
 
-          {/* Header */}
           <div className="mb-10">
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-teal-400 to-cyan-500 bg-clip-text text-transparent">
               {isLogin ? 'Welcome back' : 'Get Started'}
@@ -157,16 +183,14 @@ const AuthPage = () => {
             </p>
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 text-sm">
+            <div className="mb-6 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 text-sm flex items-center">
+              <XCircle className="mr-2 w-5 h-5" />
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name field (Signup only) */}
             {!isLogin && (
               <div className="space-y-2">
                 <div className="relative group">
@@ -178,13 +202,13 @@ const AuthPage = () => {
                     onChange={handleChange}
                     className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3.5 px-10 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all placeholder-slate-500/80"
                     placeholder="Full Name"
-                    required
+                    required={!isLogin}
+                    autoComplete="name"
                   />
                 </div>
               </div>
             )}
 
-            {/* Profile Picture Upload (Signup only) */}
             {!isLogin && (
               <div className="space-y-2">
                 <div className="relative group">
@@ -198,6 +222,7 @@ const AuthPage = () => {
                       accept="image/*"
                       onChange={handleFileChange}
                       className="hidden"
+                      autoComplete="off"
                     />
                   </label>
                 </div>
@@ -213,7 +238,6 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* Email field */}
             <div className="space-y-2">
               <div className="relative group">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400/80 group-focus-within:text-teal-400 transition-colors w-5 h-5" />
@@ -225,11 +249,11 @@ const AuthPage = () => {
                   className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3.5 px-10 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all placeholder-slate-500/80"
                   placeholder="your@email.com"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
 
-            {/* Password field */}
             <div className="space-y-2">
               <div className="relative group">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400/80 group-focus-within:text-teal-400 transition-colors w-5 h-5" />
@@ -242,6 +266,7 @@ const AuthPage = () => {
                   placeholder={isLogin ? 'Your password' : 'Create a password'}
                   required
                   minLength={8}
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
                 />
                 <button
                   type="button"
@@ -251,9 +276,51 @@ const AuthPage = () => {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {!isLogin && (
+                <>
+                  <PasswordStrengthIndicator password={formData.password} />
+                  <div className="mt-2 space-y-1">
+                    {[
+                      { 
+                        label: 'At least 8 characters', 
+                        check: passwordValidation.length 
+                      },
+                      { 
+                        label: 'Contains uppercase letter', 
+                        check: passwordValidation.uppercase 
+                      },
+                      { 
+                        label: 'Contains lowercase letter', 
+                        check: passwordValidation.lowercase 
+                      },
+                      { 
+                        label: 'Contains a number', 
+                        check: passwordValidation.number 
+                      },
+                      { 
+                        label: 'Contains a special character', 
+                        check: passwordValidation.specialChar 
+                      },
+                    ].map((item, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center space-x-2 text-sm"
+                      >
+                        {item.check ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span className={`${item.check ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Remember me & Forgot password */}
             {isLogin && (
               <div className="flex items-center justify-between px-1">
                 <label className="flex items-center space-x-2 cursor-pointer">
@@ -269,22 +336,29 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* Submit button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (!isLogin && Object.values(passwordValidation).some(v => !v))}
               className={`w-full bg-gradient-to-r from-teal-500/90 to-cyan-500/90 hover:from-teal-500 hover:to-cyan-500 text-white py-4 px-6 rounded-xl font-medium transition-all flex items-center justify-center group shadow-lg hover:shadow-teal-500/20 ${
-                loading ? 'opacity-50 cursor-not-allowed' : ''
+                (loading || (!isLogin && Object.values(passwordValidation).some(v => !v))) 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : ''
               }`}
             >
-              <span className="tracking-wide">{loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}</span>
+              <span className="tracking-wide">
+                {loading 
+                  ? 'Processing...' 
+                  : isLogin 
+                    ? 'Sign In' 
+                    : 'Create Account'
+                }
+              </span>
               {!loading && (
                 <ArrowRight className="ml-3 w-5 h-5 opacity-80 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               )}
             </button>
           </form>
 
-          {/* Social login */}
           <div className="mt-8">
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
@@ -307,7 +381,6 @@ const AuthPage = () => {
             </div>
           </div>
 
-          {/* Toggle auth */}
           <p className="mt-8 text-center text-slate-400/90">
             {isLogin ? 'New here?' : 'Already registered?'}
             <button
@@ -320,7 +393,6 @@ const AuthPage = () => {
         </div>
       </div>
 
-      {/* Right side */}
       <div className="hidden lg:block lg:w-1/2 relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl">
         <div className="absolute inset-0 flex items-center justify-center p-12">
           <div className="max-w-lg text-center bg-slate-900/40 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
@@ -330,7 +402,6 @@ const AuthPage = () => {
             <p className="text-slate-300/90 text-lg mb-8">
               Join a community of passionate learners and industry experts
             </p>
-
             <div className="grid grid-cols-3 gap-6 mt-12">
               {[
                 { value: '25K+', label: 'Students' },
@@ -345,8 +416,6 @@ const AuthPage = () => {
             </div>
           </div>
         </div>
-
-        {/* Animated background elements */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-teal-500/10 animate-blob"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-cyan-500/10 animate-blob animation-delay-2000"></div>
       </div>

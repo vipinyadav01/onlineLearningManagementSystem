@@ -1,135 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Star, Clock, Calendar, BarChart, Award, CheckCircle, Play, 
   Download, Share2, BookOpen, Users, ChevronDown, ChevronUp
 } from 'lucide-react';
-
-// Sample course data from previous component
-const COURSES_DATA = [
-  {
-    id: 1,
-    title: "Complete Web Development Bootcamp",
-    description: "Master HTML, CSS, JavaScript, React and Node.js in this comprehensive course for beginners to advanced developers.",
-    instructor: "Sarah Johnson",
-    instructorTitle: "Senior Frontend Engineer",
-    instructorBio: "Sarah has over 10 years of experience in web development and has worked with companies like Google and Microsoft. She specializes in frontend technologies and loves teaching beginners.",
-    rating: 4.8,
-    reviews: 2453,
-    students: 42350,
-    duration: "48 hours",
-    lastUpdated: "February 2025",
-    level: "All Levels",
-    price: 89.99,
-    originalPrice: 199.99,
-    discount: 55,
-    category: "Web Development",
-    tags: ["HTML", "CSS", "JavaScript", "React", "Node.js"],
-    isBestseller: true,
-    isNew: false,
-    whatYouWillLearn: [
-      "Build 25+ projects including a full-stack web application from scratch",
-      "Learn modern HTML5, CSS3, JavaScript (ES6+), React, Node.js, and Express",
-      "Master both frontend and backend development environments",
-      "Understand how to connect and work with databases (MongoDB)",
-      "Implement authentication and authorization using JWT",
-      "Deploy your applications to production with various hosting options",
-      "Optimize your applications for performance and SEO"
-    ],
-    prerequisites: [
-      "Basic computer knowledge",
-      "No prior programming experience needed - we'll teach you everything from scratch!",
-      "Computer with internet connection (Windows, Mac, or Linux)"
-    ],
-    curriculum: [
-      {
-        section: "Introduction to Web Development",
-        lectures: 12,
-        duration: "2 hours",
-        content: [
-          { title: "Course Overview", duration: "8:24", isFree: true },
-          { title: "How the Internet Works", duration: "15:42", isFree: true },
-          { title: "Setting Up Your Development Environment", duration: "20:15", isFree: false }
-        ]
-      },
-      {
-        section: "HTML Fundamentals",
-        lectures: 15,
-        duration: "4 hours",
-        content: [
-          { title: "HTML Document Structure", duration: "12:38", isFree: false },
-          { title: "Working with Text Elements", duration: "18:22", isFree: false },
-          { title: "Lists, Tables and Forms", duration: "25:14", isFree: false }
-        ]
-      },
-      {
-        section: "CSS Styling",
-        lectures: 18,
-        duration: "6 hours",
-        content: [
-          { title: "CSS Selectors and Properties", duration: "22:18", isFree: false },
-          { title: "Box Model & Layout", duration: "28:42", isFree: false },
-          { title: "Flexbox and Grid Systems", duration: "35:11", isFree: false }
-        ]
-      },
-      {
-        section: "JavaScript Programming",
-        lectures: 25,
-        duration: "10 hours",
-        content: [
-          { title: "JavaScript Syntax & Variables", duration: "18:55", isFree: false },
-          { title: "Functions and Control Flow", duration: "32:17", isFree: false },
-          { title: "DOM Manipulation", duration: "24:33", isFree: false }
-        ]
-      },
-      {
-        section: "Building with React",
-        lectures: 22,
-        duration: "9 hours",
-        content: [
-          { title: "React Fundamentals", duration: "28:44", isFree: false },
-          { title: "Components and Props", duration: "22:16", isFree: false },
-          { title: "State Management with Hooks", duration: "34:28", isFree: false }
-        ]
-      },
-      {
-        section: "Backend with Node.js",
-        lectures: 20,
-        duration: "8 hours",
-        content: [
-          { title: "Node.js Fundamentals", duration: "26:12", isFree: false },
-          { title: "Express Framework", duration: "31:18", isFree: false },
-          { title: "RESTful API Design", duration: "29:45", isFree: false }
-        ]
-      },
-      {
-        section: "Full Stack Projects",
-        lectures: 15,
-        duration: "9 hours",
-        content: [
-          { title: "Project Planning and Setup", duration: "18:24", isFree: false },
-          { title: "Building the Backend API", duration: "42:37", isFree: false },
-          { title: "Connecting Frontend to Backend", duration: "38:15", isFree: false }
-        ]
-      }
-    ]
-  },
-  // Other course data is kept the same as previous artifact...
-  {
-    id: 2,
-    title: "Advanced React & Redux Masterclass",
-    instructor: "Michael Chen",
-    rating: 4.9,
-    // Additional sample data would go here
-  },
-  {
-    id: 3,
-    title: "Python for Data Science & Machine Learning",
-    instructor: "Dr. Alex Martinez",
-    rating: 4.7,
-    // Additional sample data would go here
-  }
-];
+import axios from 'axios';
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -138,18 +13,16 @@ const CourseDetail = () => {
   const [expandedSections, setExpandedSections] = useState({});
 
   useEffect(() => {
-    // Simulate API call to fetch course by ID
-    const fetchCourse = () => {
-      setLoading(true);
-      // Find course by ID from our sample data
-      const foundCourse = COURSES_DATA.find(c => c.id === parseInt(id));
-      
-      setTimeout(() => {
-        setCourse(foundCourse);
+    const fetchCourse = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/courses/${id}`);
+        setCourse(response.data);
+      } catch (error) {
+        console.error('Error fetching course:', error);
+      } finally {
         setLoading(false);
-      }, 500); // Simulate network delay
+      }
     };
-
     fetchCourse();
   }, [id]);
 
@@ -162,7 +35,7 @@ const CourseDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
       </div>
     );
@@ -170,8 +43,8 @@ const CourseDetail = () => {
 
   if (!course) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-3xl font-bold text-white mb-4">Course Not Found</h2>
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center bg-slate-900 text-white">
+        <h2 className="text-3xl font-bold mb-4">Course Not Found</h2>
         <p className="text-slate-400 mb-8">The course you're looking for doesn't exist or has been removed.</p>
         <Link to="/courses" className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
           Browse Courses
@@ -190,18 +63,21 @@ const CourseDetail = () => {
               {course.isBestseller && (
                 <span className="inline-block bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded mb-4">BESTSELLER</span>
               )}
+              {course.isNew && !course.isBestseller && (
+                <span className="inline-block bg-teal-500 text-white text-xs font-bold px-2 py-1 rounded mb-4">NEW</span>
+              )}
               <h1 className="text-3xl md:text-4xl font-bold mb-4">{course.title}</h1>
               <p className="text-slate-300 text-lg mb-6">{course.description}</p>
               
               <div className="flex flex-wrap items-center gap-4 mb-6">
                 <div className="flex items-center">
                   <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <span className="ml-1 font-medium">{course.rating}</span>
-                  <span className="text-slate-400 ml-1">({course.reviews} reviews)</span>
+                  <span className="ml-1 font-medium">{course.rating || 'N/A'}</span>
+                  <span className="text-slate-400 ml-1">({course.reviews || 0} reviews)</span>
                 </div>
                 <div className="text-slate-300">
                   <Users className="w-4 h-4 inline mr-1" />
-                  {course.students.toLocaleString()} students
+                  {course.students?.toLocaleString() || 0} students
                 </div>
               </div>
               
@@ -213,15 +89,15 @@ const CourseDetail = () => {
               <div className="flex flex-wrap gap-4 text-sm text-slate-300 mb-6">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />
-                  Last updated {course.lastUpdated}
+                  Last updated {course.lastUpdated || 'N/A'}
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-1" />
-                  {course.duration} total
+                  {course.duration || 'N/A'} total
                 </div>
                 <div className="flex items-center">
                   <BarChart className="w-4 h-4 mr-1" />
-                  {course.level}
+                  {course.level || 'N/A'}
                 </div>
               </div>
             </div>
@@ -229,7 +105,7 @@ const CourseDetail = () => {
             <div className="bg-slate-800 rounded-xl overflow-hidden shadow-xl border border-slate-700">
               <div className="aspect-video relative">
                 <img 
-                  src={`/api/placeholder/800/450?text=Course+${course.id}+Preview`}
+                  src={course.image || `/api/placeholder/800/450?text=${course.title}`}
                   alt={`${course.title} preview`}
                   className="w-full h-full object-cover" 
                 />
@@ -246,7 +122,7 @@ const CourseDetail = () => {
                   {course.originalPrice > course.price && (
                     <>
                       <span className="text-lg text-slate-400 line-through">${course.originalPrice}</span>
-                      <span className="text-lg text-teal-400">{course.discount}% off</span>
+                      <span className="text-lg text-teal-400">{course.discount || 0}% off</span>
                     </>
                   )}
                 </div>
@@ -265,15 +141,15 @@ const CourseDetail = () => {
                   <ul className="space-y-3">
                     <li className="flex items-start">
                       <Clock className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
-                      <span>{course.duration} on-demand video</span>
+                      <span>{course.duration || 'N/A'} on-demand video</span>
                     </li>
                     <li className="flex items-start">
                       <BookOpen className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
-                      <span>25 articles & resources</span>
+                      <span>Resources available</span>
                     </li>
                     <li className="flex items-start">
                       <Download className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
-                      <span>Downloadable source code</span>
+                      <span>Downloadable content</span>
                     </li>
                     <li className="flex items-start">
                       <Award className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
@@ -304,12 +180,16 @@ const CourseDetail = () => {
             <section className="mb-12 bg-slate-800 rounded-xl p-6 border border-slate-700">
               <h2 className="text-2xl font-bold mb-6">What you'll learn</h2>
               <div className="grid md:grid-cols-2 gap-4">
-                {course.whatYouWillLearn.map((item, index) => (
-                  <div key={index} className="flex">
-                    <CheckCircle className="w-5 h-5 text-teal-400 mr-3 flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </div>
-                ))}
+                {course.whatYouWillLearn && course.whatYouWillLearn.length > 0 ? (
+                  course.whatYouWillLearn.map((item, index) => (
+                    <div key={index} className="flex">
+                      <CheckCircle className="w-5 h-5 text-teal-400 mr-3 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400">No learning objectives specified.</p>
+                )}
               </div>
             </section>
             
@@ -317,12 +197,16 @@ const CourseDetail = () => {
             <section className="mb-12">
               <h2 className="text-2xl font-bold mb-6">Prerequisites</h2>
               <ul className="space-y-2">
-                {course.prerequisites.map((item, index) => (
-                  <li key={index} className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-teal-400 mr-3 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
+                {course.prerequisites && course.prerequisites.length > 0 ? (
+                  course.prerequisites.map((item, index) => (
+                    <li key={index} className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-teal-400 mr-3 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))
+                ) : (
+                  <p className="text-slate-400">No prerequisites specified.</p>
+                )}
               </ul>
             </section>
             
@@ -331,50 +215,58 @@ const CourseDetail = () => {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Course Content</h2>
                 <div className="text-sm text-slate-300">
-                  {course.curriculum.reduce((total, section) => total + section.lectures, 0)} lectures • {course.duration}
+                  {course.curriculum?.reduce((total, section) => total + (section.lectures || 0), 0) || 0} lectures • {course.duration || 'N/A'}
                 </div>
               </div>
               
               <div className="border border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-700">
-                {course.curriculum.map((section, sectionIndex) => (
-                  <div key={sectionIndex} className="bg-slate-800">
-                    <button 
-                      onClick={() => toggleSection(sectionIndex)}
-                      className="w-full flex justify-between items-center p-4 hover:bg-slate-700 transition-colors text-left"
-                    >
-                      <div className="flex-1">
-                        <h3 className="font-medium">{section.section}</h3>
-                        <p className="text-sm text-slate-400">{section.lectures} lectures • {section.duration}</p>
-                      </div>
-                      {expandedSections[sectionIndex] ? (
-                        <ChevronUp className="w-5 h-5 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                {course.curriculum && course.curriculum.length > 0 ? (
+                  course.curriculum.map((section, sectionIndex) => (
+                    <div key={sectionIndex} className="bg-slate-800">
+                      <button 
+                        onClick={() => toggleSection(sectionIndex)}
+                        className="w-full flex justify-between items-center p-4 hover:bg-slate-700 transition-colors text-left"
+                      >
+                        <div className="flex-1">
+                          <h3 className="font-medium">{section.section}</h3>
+                          <p className="text-sm text-slate-400">{section.lectures || 0} lectures • {section.duration || 'N/A'}</p>
+                        </div>
+                        {expandedSections[sectionIndex] ? (
+                          <ChevronUp className="w-5 h-5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-slate-400" />
+                        )}
+                      </button>
+                      
+                      {expandedSections[sectionIndex] && (
+                        <div className="bg-slate-900 divide-y divide-slate-800">
+                          {section.content && section.content.length > 0 ? (
+                            section.content.map((lecture, lectureIndex) => (
+                              <div key={lectureIndex} className="flex justify-between items-center p-4 hover:bg-slate-800 transition-colors">
+                                <div className="flex items-center">
+                                  <Play className="w-4 h-4 text-slate-400 mr-3" />
+                                  <span>
+                                    {lecture.title}
+                                    {lecture.isFree && (
+                                      <span className="ml-2 text-xs bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded">Preview</span>
+                                    )}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-slate-400">{lecture.duration || 'N/A'}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="p-4 text-slate-400">No content available for this section.</p>
+                          )}
+                        </div>
                       )}
-                    </button>
-                    
-                    {expandedSections[sectionIndex] && (
-                      <div className="bg-slate-900 divide-y divide-slate-800">
-                        {section.content.map((lecture, lectureIndex) => (
-                          <div key={lectureIndex} className="flex justify-between items-center p-4 hover:bg-slate-800 transition-colors">
-                            <div className="flex items-center">
-                              <Play className="w-4 h-4 text-slate-400 mr-3" />
-                              <span>
-                                {lecture.title}
-                                {lecture.isFree && (
-                                  <span className="ml-2 text-xs bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded">Preview</span>
-                                )}
-                              </span>
-                            </div>
-                            <span className="text-sm text-slate-400">{lecture.duration}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-4 text-slate-400">No curriculum available.</p>
+                )}
               </div>
-              </section>
+            </section>
             
             {/* Instructor section */}
             <section id="instructor" className="mb-12">
@@ -384,7 +276,7 @@ const CourseDetail = () => {
                   <div className="mr-4">
                     <div className="w-16 h-16 rounded-full bg-slate-600 overflow-hidden">
                       <img 
-                        src={`/api/placeholder/200/200?text=${course.instructor.charAt(0)}`}
+                        src={course.image || `/api/placeholder/200/200?text=${course.instructor?.charAt(0) || 'I'}`}
                         alt={course.instructor}
                         className="w-full h-full object-cover"
                       />
@@ -392,31 +284,31 @@ const CourseDetail = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold">{course.instructor}</h3>
-                    <p className="text-teal-400">{course.instructorTitle}</p>
+                    <p className="text-teal-400">{course.instructorTitle || 'Instructor'}</p>
                   </div>
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div className="flex items-center text-sm">
                     <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                    <span>{course.rating} Instructor Rating</span>
+                    <span>{course.rating || 'N/A'} Instructor Rating</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Award className="w-4 h-4 text-slate-400 mr-1" />
-                    <span>15 Courses</span>
+                    <span>Courses Taught</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Users className="w-4 h-4 text-slate-400 mr-1" />
-                    <span>{course.students.toLocaleString()} Students</span>
+                    <span>{course.students?.toLocaleString() || 0} Students</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Play className="w-4 h-4 text-slate-400 mr-1" />
-                    <span>126 Reviews</span>
+                    <span>{course.reviews || 0} Reviews</span>
                   </div>
                 </div>
                 
                 <p className="text-slate-300">
-                  {course.instructorBio}
+                  {course.instructorBio || 'No bio available.'}
                 </p>
               </div>
             </section>
@@ -427,12 +319,12 @@ const CourseDetail = () => {
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                 <div className="flex flex-col md:flex-row gap-8 items-center mb-8">
                   <div className="text-center">
-                    <div className="text-5xl font-bold mb-2">{course.rating}</div>
+                    <div className="text-5xl font-bold mb-2">{course.rating || 'N/A'}</div>
                     <div className="flex justify-center mb-2">
                       {[1, 2, 3, 4, 5].map(star => (
                         <Star 
                           key={star} 
-                          className={`w-5 h-5 ${star <= Math.floor(course.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'}`} 
+                          className={`w-5 h-5 ${star <= Math.floor(course.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'}`} 
                         />
                       ))}
                     </div>
@@ -441,7 +333,7 @@ const CourseDetail = () => {
                   
                   <div className="flex-1">
                     {[5, 4, 3, 2, 1].map(rating => {
-                      // Calculate percentage (mock data)
+                      // Mock percentage data (replace with real data if available from backend)
                       const percentage = rating === 5 ? 78 : 
                                         rating === 4 ? 15 : 
                                         rating === 3 ? 5 : 
@@ -466,7 +358,7 @@ const CourseDetail = () => {
                   </div>
                 </div>
                 
-                {/* Sample reviews */}
+                {/* Sample reviews (could be fetched separately from backend if added) */}
                 <div className="space-y-6">
                   <div className="border-t border-slate-700 pt-6">
                     <div className="flex justify-between mb-2">
@@ -540,30 +432,8 @@ const CourseDetail = () => {
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
                 <h3 className="text-xl font-bold mb-4">Related Courses</h3>
                 <div className="space-y-4">
-                  {COURSES_DATA.filter(c => c.id !== course.id).slice(0, 3).map(relatedCourse => (
-                    <Link 
-                      key={relatedCourse.id} 
-                      to={`/courses/${relatedCourse.id}`}
-                      className="flex gap-3 hover:bg-slate-700 p-2 rounded-lg transition-colors"
-                    >
-                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                        <img 
-                          src={`/api/placeholder/100/100?text=${relatedCourse.id}`}
-                          alt={relatedCourse.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-sm line-clamp-2 mb-1">{relatedCourse.title}</h4>
-                        <div className="flex items-center text-xs">
-                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                          <span className="ml-1">{relatedCourse.rating}</span>
-                          <span className="mx-1">•</span>
-                          <span>{relatedCourse.instructor}</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                  {/* Fetch related courses dynamically if backend supports it */}
+                  <p className="text-slate-400">Related courses feature coming soon.</p>
                 </div>
               </div>
               
@@ -571,15 +441,19 @@ const CourseDetail = () => {
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                 <h3 className="text-xl font-bold mb-4">Tags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {course.tags.map(tag => (
-                    <Link 
-                      key={tag} 
-                      to={`/courses?tag=${tag}`}
-                      className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg text-sm transition-colors"
-                    >
-                      {tag}
-                    </Link>
-                  ))}
+                  {course.tags && course.tags.length > 0 ? (
+                    course.tags.map(tag => (
+                      <Link 
+                        key={tag} 
+                        to={`/courses?tag=${tag}`}
+                        className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg text-sm transition-colors"
+                      >
+                        {tag}
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-slate-400">No tags available.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -592,7 +466,7 @@ const CourseDetail = () => {
         <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to start your learning journey?</h2>
           <p className="text-slate-300 text-lg max-w-2xl mx-auto mb-8">
-            Join thousands of students already mastering web development with our comprehensive courses.
+            Join thousands of students already mastering skills with our comprehensive courses.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 rounded-lg font-medium transition-colors">
