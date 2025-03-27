@@ -8,9 +8,9 @@ const CATEGORIES = [
   "All Categories",
   "Web Development",
   "Frontend",
-  "Backend", 
+  "Backend",
   "Fullstack",
-  "Data Science", 
+  "Data Science",
   "Mobile Development",
   "DevOps",
   "Design"
@@ -19,7 +19,7 @@ const CATEGORIES = [
 const LEVELS = ["All Levels", "Beginner", "Intermediate", "Advanced"];
 
 const CourseSkeleton = () => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0.6 }}
     animate={{ opacity: 1 }}
     transition={{ duration: 0.8, repeat: Infinity, repeatType: "reverse" }}
@@ -39,7 +39,7 @@ const CourseSkeleton = () => (
 );
 
 const ErrorState = ({ message, onRetry }) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ duration: 0.3 }}
@@ -49,7 +49,7 @@ const ErrorState = ({ message, onRetry }) => (
       <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
       <h2 className="text-2xl font-bold text-white mb-4">Oops! Something went wrong</h2>
       <p className="text-slate-400 mb-6">{message}</p>
-      <button 
+      <button
         onClick={onRetry}
         className="bg-teal-500 text-white px-6 py-3 rounded-lg hover:bg-teal-600 transition-colors flex items-center justify-center mx-auto"
       >
@@ -72,12 +72,42 @@ const Courses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      setError('');
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/courses`);
-      setCourses(response.data);
+      setError(''); // Reset error state
+
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/courses`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+
+      console.log('Courses response:', response.data);
+
+      // Assuming the backend returns { success: true, courses: [...] }
+      if (response.data.success && Array.isArray(response.data.courses)) {
+        setCourses(response.data.courses);
+        if (response.data.courses.length === 0) {
+          setError('No courses available at the moment.');
+        }
+      } else {
+        setError(response.data.message || 'No courses found');
+        setCourses([]);
+      }
     } catch (err) {
-      setError('Failed to load courses. Please check your internet connection or try again later.');
-      console.error('Error fetching courses:', err);
+      console.error('Detailed error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+
+      const errorMessage =
+        err.response?.status === 404
+          ? 'Courses endpoint not found'
+          : err.response?.data?.message || 'Failed to load courses. Please check your connection.';
+
+      setError(errorMessage);
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -88,37 +118,37 @@ const Courses = () => {
   }, []);
 
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All Categories' || course.category === selectedCategory;
     const matchesLevel = selectedLevel === 'All Levels' || (course.level && course.level.includes(selectedLevel));
-    
+
     return matchesSearch && matchesCategory && matchesLevel;
   });
 
-  if (error) {
+  if (error && !loading) {
     return <ErrorState message={error} onRetry={fetchCourses} />;
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8 bg-slate-900 text-white"
     >
       {/* Hero section */}
-      <motion.div 
+      <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 md:p-12 mb-12 relative overflow-hidden"
       >
         <div className="absolute inset-0 opacity-10">
-          <img 
-            src="/api/placeholder/1200/400" 
-            alt="Background pattern" 
-            className="w-full h-full object-cover" 
+          <img
+            src="/api/placeholder/1200/400"
+            alt="Background pattern"
+            className="w-full h-full object-cover"
           />
         </div>
         <div className="relative z-10">
@@ -137,7 +167,7 @@ const Courses = () => {
                 className="w-full bg-white/10 backdrop-blur-sm border border-slate-600 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -153,7 +183,7 @@ const Courses = () => {
       {/* Filters */}
       <AnimatePresence>
         {isFilterOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -190,7 +220,7 @@ const Courses = () => {
       </AnimatePresence>
 
       {/* Course listings */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, staggerChildren: 0.1 }}
@@ -208,7 +238,7 @@ const Courses = () => {
             <CourseCard key={course._id} course={course} />
           ))
         ) : (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="col-span-full text-center py-12 bg-slate-800 rounded-xl"
@@ -228,18 +258,18 @@ const CourseCard = ({ course }) => {
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
     >
-      <Link 
-        to={`/courses/${course._id}`} 
+      <Link
+        to={`/courses/${course._id}`}
         className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden border border-slate-700 hover:border-slate-500 transition-all hover:shadow-xl hover:shadow-teal-900/20 group block"
       >
         <div className="aspect-video relative overflow-hidden">
-          <img 
+          <img
             src={course.image || `/api/placeholder/800/450?text=${course.title}`}
             alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
           {course.isBestseller && (
-            <motion.span 
+            <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="absolute top-4 left-4 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded"
@@ -248,7 +278,7 @@ const CourseCard = ({ course }) => {
             </motion.span>
           )}
           {course.isNew && (
-            <motion.span 
+            <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="absolute top-4 left-4 bg-teal-500 text-white text-xs font-bold px-2 py-1 rounded"
@@ -262,8 +292,8 @@ const CourseCard = ({ course }) => {
             <span className="text-sm text-teal-400 font-medium">{course.category}</span>
             <div className="flex items-center">
               <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              <span className="text-white ml-1 text-sm font-medium">{course.rating}</span>
-              <span className="text-slate-400 ml-1 text-xs">({course.reviews})</span>
+              <span className="text-white ml-1 text-sm font-medium">{course.rating || 'N/A'}</span>
+              <span className="text-slate-400 ml-1 text-xs">({course.reviews || 0})</span>
             </div>
           </div>
           <h3 className="text-xl font-bold text-white mb-2 group-hover:text-teal-400 transition-colors line-clamp-2">{course.title}</h3>
@@ -272,7 +302,7 @@ const CourseCard = ({ course }) => {
             <Clock className="w-4 h-4 mr-1" />
             <span className="mr-4">{course.duration || 'N/A'}</span>
             <Users className="w-4 h-4 mr-1" />
-            <span>{course.students.toLocaleString()} students</span>
+            <span>{course.students?.toLocaleString() || 0} students</span>
           </div>
           <div className="flex items-center justify-between">
             <div>

@@ -6,36 +6,72 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'autoUpdate', 
       devOptions: {
-        enabled: true,
+        enabled: true, 
       },
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'], 
       manifest: {
-        name: 'My React PWA',
-        short_name: 'React PWA',
-        description: 'A React PWA using Vite',
+        name: 'TechBit Academy',
+        short_name: 'TechBit',
+        description: 'A modern web development academy web framework for developing web applications and a Revolutionary Learning Platform .',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
+        start_url: '/', 
+        scope: '/',
         icons: [
           {
             src: '/pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any', 
           },
           {
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'maskable any',
           },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globDirectory: 'dist', 
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp}'], 
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        runtimeCaching: [ 
+          {
+            urlPattern: ({ request }) => request.destination === 'image', 
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/your-api-domain\.com\/api\/.*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 24 * 60 * 60,
+              },
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
       },
     }),
   ],
   server: {
-    port: 3000
-  }
+    port: 3000, 
+  },
+  build: {
+    outDir: 'dist', 
+    sourcemap: true, 
+  },
 });
