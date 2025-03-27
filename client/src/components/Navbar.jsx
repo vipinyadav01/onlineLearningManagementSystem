@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, User, Home, Clock, Book, LogIn } from 'lucide-react';
+import { User, Home, Clock, Book, LogIn } from 'lucide-react';
 import axios from 'axios';
 
 const Navbar = () => {
@@ -75,7 +75,6 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
