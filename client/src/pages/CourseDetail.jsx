@@ -1,5 +1,5 @@
-import  { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom'; // Add useNavigate
 import { 
   Star, Clock, Calendar, BarChart, Award, CheckCircle, Play, 
   Download, Share2, BookOpen, Users, ChevronDown, ChevronUp
@@ -8,22 +8,52 @@ import axios from 'axios';
 
 const CourseDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); // For navigation
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/courses/${id}`);
-        setCourse(response.data);
+        setLoading(true);
+        setError(null);
+        const baseUrl = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.get(`${baseUrl}/admin/courses/${id}`, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        });
+        if (response.data.success && response.data.course) {
+          setCourse(response.data.course);
+          setError(null);
+        } else {
+          setError(response.data.message || 'No course data received');
+          setCourse(null);
+        }
       } catch (error) {
-        console.error('Error fetching course:', error);
+        console.error('Error fetching course:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
+        const errorMessage =
+          error.response?.status === 404
+            ? 'Course not found'
+            : error.response?.data?.message || 'Failed to fetch course details';
+        setError(errorMessage);
+        setCourse(null);
       } finally {
         setLoading(false);
       }
     };
-    fetchCourse();
+
+    if (id) {
+      fetchCourse();
+    }
   }, [id]);
 
   const toggleSection = (sectionIndex) => {
@@ -31,6 +61,12 @@ const CourseDetail = () => {
       ...prev,
       [sectionIndex]: !prev[sectionIndex]
     }));
+  };
+
+  const handleEnrollNow = () => {
+    if (course) {
+      navigate('/checkout', { state: { course } }); // Pass course data to checkout
+    }
   };
 
   if (loading) {
@@ -41,11 +77,13 @@ const CourseDetail = () => {
     );
   }
 
-  if (!course) {
+  if (error || !course) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center bg-slate-900 text-white">
-        <h2 className="text-3xl font-bold mb-4">Course Not Found</h2>
-        <p className="text-slate-400 mb-8">The course you're looking for doesn't exist or has been removed.</p>
+        <h2 className="text-3xl font-bold mb-4">{error || 'Course Not Found'}</h2>
+        <p className="text-slate-400 mb-8">
+          {error ? error : "The course you're looking for doesn't exist or has been removed."}
+        </p>
         <Link to="/courses" className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
           Browse Courses
         </Link>
@@ -128,12 +166,13 @@ const CourseDetail = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  <button className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center">
+                <button 
+                    onClick={handleEnrollNow}
+                    className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                  >
                     Enroll Now
                   </button>
-                  <button className="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center">
-                    Try Free Preview
-                  </button>
+
                 </div>
                 
                 <div className="mt-6 border-t border-slate-700 pt-6">
@@ -333,7 +372,6 @@ const CourseDetail = () => {
                   
                   <div className="flex-1">
                     {[5, 4, 3, 2, 1].map(rating => {
-                      // Mock percentage data (replace with real data if available from backend)
                       const percentage = rating === 5 ? 78 : 
                                         rating === 4 ? 15 : 
                                         rating === 3 ? 5 : 
@@ -358,7 +396,6 @@ const CourseDetail = () => {
                   </div>
                 </div>
                 
-                {/* Sample reviews (could be fetched separately from backend if added) */}
                 <div className="space-y-6">
                   <div className="border-t border-slate-700 pt-6">
                     <div className="flex justify-between mb-2">
@@ -425,19 +462,15 @@ const CourseDetail = () => {
             </section>
           </div>
           
-          {/* Sidebar */}
           <div className="md:col-span-1">
             <div className="sticky top-24">
-              {/* Related courses */}
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
                 <h3 className="text-xl font-bold mb-4">Related Courses</h3>
                 <div className="space-y-4">
-                  {/* Fetch related courses dynamically if backend supports it */}
                   <p className="text-slate-400">Related courses feature coming soon.</p>
                 </div>
               </div>
               
-              {/* Tags */}
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                 <h3 className="text-xl font-bold mb-4">Tags</h3>
                 <div className="flex flex-wrap gap-2">
@@ -461,7 +494,6 @@ const CourseDetail = () => {
         </div>
       </div>
       
-      {/* CTA section */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-t border-slate-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to start your learning journey?</h2>
@@ -469,12 +501,12 @@ const CourseDetail = () => {
             Join thousands of students already mastering skills with our comprehensive courses.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 rounded-lg font-medium transition-colors">
-              Enroll Now
-            </button>
-            <button className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-4 rounded-lg font-medium transition-colors">
-              Try Free Preview
-            </button>
+          <button 
+                    onClick={handleEnrollNow}
+                    className="w-full bg-teal-500 hover:bg-teal-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                  >
+                    Enroll Now
+                  </button>
           </div>
         </div>
       </div>

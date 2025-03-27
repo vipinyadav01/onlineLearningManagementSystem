@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, User, Home, Clock, Book, LogIn } from 'lucide-react';
+import { User, Home, Clock, Book, LogIn } from 'lucide-react';
 import axios from 'axios';
 
 const Navbar = () => {
@@ -11,7 +11,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Navigation items config
+  // Navigation items configuration
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/courses', label: 'Courses', icon: Book },
@@ -24,23 +24,26 @@ const Navbar = () => {
     { path: '/request-callback', label: 'Request Callback', icon: User },
   ];
 
-  // Fetch user data from the backend
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('No token found');
+        throw new Error('No authentication token found');
       }
 
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/me`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      return response.data;
+      if (!response.data.success) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      return response.data.data;
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Authentication Error:', error.message);
       localStorage.removeItem('token');
       setIsLoggedIn(false);
       setUser(null);
@@ -49,7 +52,6 @@ const Navbar = () => {
     }
   };
 
-  // Check authentication status on mount
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('token');
@@ -63,9 +65,8 @@ const Navbar = () => {
     };
 
     initializeAuth();
-  }, []);
+  }, [navigate]);
 
-  // Handle scroll effect for navbar
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -75,13 +76,12 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/logout`,
+          `${import.meta.env.VITE_API_BASE_URL}/auth/logout`,
           {},
           {
             headers: {
@@ -91,7 +91,7 @@ const Navbar = () => {
         );
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Logout Error:', error);
     } finally {
       localStorage.removeItem('token');
       setIsLoggedIn(false);
@@ -101,18 +101,50 @@ const Navbar = () => {
     }
   };
 
+  // Profile dropdown menu
+  const ProfileDropdown = () => (
+    <div
+      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 divide-y divide-gray-100"
+      onBlur={() => setIsProfileOpen(false)}
+    >
+      <div className="px-4 py-3">
+        <p className="text-sm text-gray-900">{user?.name}</p>
+        <p className="text-sm font-medium text-gray-500 truncate">{user?.email}</p>
+      </div>
+      <div className="py-1">
+        <NavLink
+          to="/profile"
+          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+          onClick={() => setIsProfileOpen(false)}
+        >
+          <User className="mr-2 h-4 w-4" /> Profile
+        </NavLink>
+      </div>
+      <div className="py-1">
+        <button
+          onClick={handleLogout}
+          className="w-full text-left block px-4 py-2 text-sm text-red-700 hover:bg-gray-100 flex items-center"
+        >
+          <LogOut className="mr-2 h-4 w-4" /> Sign Out
+        </button>
+      </div>
+    </div>
+  );
+
   // Bottom Navigation Item Component
   const BottomNavItem = ({ icon: Icon, label, to }) => (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex flex-col items-center justify-center w-full py-2 transition-all ${isActive ? 'text-teal-400' : 'text-slate-400 hover:text-teal-300'
+        `flex flex-col items-center justify-center w-full py-2 transition-all ${
+          isActive ? 'text-teal-400' : 'text-slate-400 hover:text-teal-300'
         }`
       }
     >
       <Icon
-        className={`w-6 h-6 transition-transform ${location.pathname === to ? 'scale-110' : 'group-hover:scale-105'
-          }`}
+        className={`w-6 h-6 transition-transform ${
+          location.pathname === to ? 'scale-110' : 'group-hover:scale-105'
+        }`}
       />
       <span className="text-xs mt-1">{label}</span>
     </NavLink>
@@ -122,18 +154,16 @@ const Navbar = () => {
     <>
       {/* Top Navigation (Desktop) */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
             ? 'bg-slate-900/95 backdrop-blur-lg shadow-xl py-3 border-b border-slate-700/30'
             : 'bg-transparent py-5'
-          }`}
+        }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             {/* Logo */}
-            <NavLink
-              to="/"
-              className="flex items-center gap-3 group"
-            >
+            <NavLink to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
                 <img src="/favicon-32x32.png" alt="Logo" className="w-6 h-6" />
               </div>
@@ -150,9 +180,11 @@ const Navbar = () => {
                   to={item.path}
                   className={({ isActive }) =>
                     `relative px-4 py-2.5 text-sm font-medium transition-all rounded-lg
-                    ${isActive
-                      ? 'text-teal-400 bg-white/5'
-                      : 'text-white/90 hover:text-teal-400 hover:bg-white/3'}`
+                    ${
+                      isActive
+                        ? 'text-teal-400 bg-white/5'
+                        : 'text-white/90 hover:text-teal-400 hover:bg-white/3'
+                    }`
                   }
                 >
                   {item.label}
@@ -165,41 +197,45 @@ const Navbar = () => {
             </div>
 
             {/* Auth Section */}
-            <div className="hidden md:flex items-center gap-4 ml-4">
+            <div className="hidden md:flex items-center gap-4 ml-4 relative">
               {isLoggedIn && user ? (
-              <NavLink
-                to="/profile"
-                className="flex items-center gap-2 group"
-                aria-label="User profile"
-              >
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400/80 to-cyan-500/80 p-0.5 shadow-lg transition-transform group-hover:scale-105">
-                <img
-                  src={user.profilePic || 'https://via.placeholder.com/150'}
-                  alt="Profile"
-                  className="w-full h-full rounded-full object-cover border border-slate-700/30"
-                />
+                <div className="relative">
+                  <button
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="flex items-center gap-2 group"
+                    aria-label="User profile"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400/80 to-cyan-500/80 p-0.5 shadow-lg transition-transform group-hover:scale-105">
+                      <img
+                        src={user.profilePic || 'https://via.placeholder.com/150'}
+                        alt="Profile"
+                        className="w-full h-full rounded-full object-cover border border-slate-700/30"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-white flex items-center">
+                      {user.name}
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    </span>
+                  </button>
+                  {isProfileOpen && <ProfileDropdown />}
                 </div>
-                <span className="text-sm font-medium text-white">
-                {user.name}
-                </span>
-              </NavLink>
               ) : (
-              <NavLink
-                to="/login"
-                className="group relative inline-flex items-center justify-center px-6 py-2.5 overflow-hidden font-medium transition-all bg-gradient-to-r from-teal-500/90 to-cyan-500/90 rounded-lg hover:from-teal-500 hover:to-cyan-500 text-white shadow-md hover:shadow-teal-500/30"
-              >
-                <span className="relative flex items-center gap-1.5">
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
-                </span>
-              </NavLink>
+                <NavLink
+                  to="/login"
+                  className="group relative inline-flex items-center justify-center px-6 py-2.5 overflow-hidden font-medium transition-all bg-gradient-to-r from-teal-500/90 to-cyan-500/90 rounded-lg hover:from-teal-500 hover:to-cyan-500 text-white shadow-md hover:shadow-teal-500/30"
+                >
+                  <span className="relative flex items-center gap-1.5">
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </span>
+                </NavLink>
               )}
             </div>
-            </div>
           </div>
-          </nav>
+        </div>
+      </nav>
 
-          {/* Bottom Navigation for Mobile */}
+      {/* Bottom Navigation for Mobile */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
         <div className="bg-slate-900/95 backdrop-blur-lg shadow-2xl border-t border-slate-700/30 rounded-t-2xl">
           <div className="grid grid-cols-5 gap-2 px-4 py-3">

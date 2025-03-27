@@ -1,175 +1,133 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  LogOut, 
-  Clock, 
-  Activity, 
-  UserCheck 
-} from 'lucide-react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { 
+  UserCircle2, 
+  Mail, 
+  Calendar, 
+  Activity, 
+  RefreshCcw 
+} from 'lucide-react';
 
 const UserLogins = ({ onLogout }) => {
-  const [logins, setLogins] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalLogins: 0,
-    uniqueUsers: 0,
-    mostActiveUser: ''
-  });
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchLogins = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/users/logins`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-        });
-        
-        const loginData = response.data;
-        setLogins(loginData);
-
-        // Calculate statistics
-        const uniqueUsers = new Set(loginData.map(l => l.username)).size;
-        const mostActiveUser = loginData.reduce((prev, current) => 
-          (prev.count || 0) > (current.count || 0) ? prev : current
-        ).username;
-
-        setStats({
-          totalLogins: loginData.length,
-          uniqueUsers,
-          mostActiveUser
-        });
-      } catch (error) {
-        console.error('Error fetching logins:', error);
-        setLogins([]);
-      } finally {
-        setLoading(false);
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(response.data.users);
+      setError(null);
+    } catch (error) {
+      if (error.response?.status === 401 && typeof onLogout === 'function') {
+        onLogout();
+        navigate('/login');
       }
-    };
-    fetchLogins();
-  }, []);
-
-  const StatCard = ({ icon: Icon, title, value, color }) => (
-    <div className="bg-white shadow-md rounded-lg p-4 flex items-center space-x-4 hover:shadow-lg transition-shadow">
-      <div className={`p-3 rounded-full ${color} bg-opacity-10`}>
-        <Icon className={`${color} w-6 h-6`} />
-      </div>
-      <div>
-        <p className="text-gray-500 text-sm">{title}</p>
-        <p className="text-xl font-semibold">{value}</p>
-      </div>
-    </div>
-  );
-
-  const getLoginTimeClass = (loginDate) => {
-    const hoursSinceLogin = (Date.now() - new Date(loginDate).getTime()) / (1000 * 60 * 60);
-    if (hoursSinceLogin < 1) return 'bg-green-100 text-green-800';
-    if (hoursSinceLogin < 24) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+      setError(error.response?.data?.message || 'Failed to fetch users');
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    fetchUsers();
+  }, [navigate, onLogout]);
+
+  // Loading state with skeleton loader
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-12 bg-gray-300 rounded w-3/4"></div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((item) => (
+              <div key={item} className="bg-gray-300 h-20 rounded-2xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
+          <Activity className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="flex justify-center space-x-4">
+            <button 
+              onClick={fetchUsers}
+              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+            >
+              <RefreshCcw className="mr-2 w-4 h-4" /> Retry
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <Users size={24} className="text-blue-500" />
-            <h1 className="text-xl font-bold text-gray-800">User Logins</h1>
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800">User Logins</h1>
+          <div className="text-gray-500 flex items-center">
+            <UserCircle2 className="mr-2 w-6 h-6" />
+            <span>{users.length} Total Users</span>
           </div>
-          <button
-            onClick={onLogout}
-            className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors px-3 py-2 rounded-md hover:bg-red-50"
-          >
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <StatCard 
-            icon={Activity} 
-            title="Total Logins" 
-            value={stats.totalLogins} 
-            color="text-blue-500"
-          />
-          <StatCard 
-            icon={Users} 
-            title="Unique Users" 
-            value={stats.uniqueUsers} 
-            color="text-green-500"
-          />
-          <StatCard 
-            icon={UserCheck} 
-            title="Most Active User" 
-            value={stats.mostActiveUser || 'N/A'} 
-            color="text-purple-500"
-          />
         </div>
 
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b flex items-center space-x-2">
-            <Clock size={20} className="text-blue-500" />
-            <h2 className="text-lg font-semibold text-gray-800">Recent Login Activity</h2>
+        <div className="grid gap-4">
+          {users.map(user => (
+            <div 
+              key={user._id} 
+              className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-6 flex items-center space-x-6"
+            >
+              <UserCircle2 className="w-12 h-12 text-blue-500" />
+              <div className="flex-grow">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-lg font-semibold text-gray-800 flex items-center">
+                      <Mail className="mr-2 w-4 h-4 text-gray-500" />
+                      {user.email}
+                    </p>
+                    <p className="text-sm text-gray-500 flex items-center">
+                      <Calendar className="mr-2 w-4 h-4" />
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs">
+                    Active
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {users.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-2xl shadow-md">
+            <UserCircle2 className="w-24 h-24 text-gray-300 mx-auto mb-4" />
+            <p className="text-xl text-gray-600">No users found</p>
           </div>
-
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500"></div>
-            </div>
-          ) : logins.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                    <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-                    <th className="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {logins.map(login => {
-                    const loginDate = new Date(login.lastLogin);
-                    const timeClass = getLoginTimeClass(login.lastLogin);
-                    
-                    return (
-                      <tr 
-                        key={login.id} 
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="p-3 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {login.username}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 whitespace-nowrap text-sm text-gray-500">
-                          {loginDate.toLocaleString()}
-                        </td>
-                        <td className="p-3 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${timeClass}`}>
-                            {((Date.now() - loginDate.getTime()) / (1000 * 60 * 60)).toFixed(1)} hrs ago
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <Users size={48} className="mb-4 text-blue-300" />
-              <p className="text-lg">No recent logins found</p>
-              <p className="text-sm text-gray-400 mt-2">
-                User login history will appear here
-              </p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
