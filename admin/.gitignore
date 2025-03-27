@@ -1,3 +1,19 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Logs
 logs
 *.log
@@ -6,19 +22,32 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.log
 
-node_modules
-dist
-dist-ssr
-*.local
+# Build artifacts
+dist/
+build/
+out/
+.next/
+.vercel/
+.netlify/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
+# Editor-specific files
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Lint and Formatting
+eslintcache
+.prettier_cache/
+
+# TypeScript
+*.tsbuildinfo

@@ -8,6 +8,8 @@ import CoursesDetail from './pages/CourseDetail';
 import Footer from './components/Footer';
 import Profile from './pages/Profile';
 import RequestCallback from './pages/RequestCallback';
+import Checkout from './components/Checkout';
+import MyOrders from './components/MyOrders';
 
 // Define ComingSoon component before using it
 const ComingSoon = ({ title }) => {
@@ -37,6 +39,8 @@ const App = () => {
             <Route path="/live-course" element={<ComingSoon title="Live Courses" />} />
             <Route path="/request-callback" element={<RequestCallback/>} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/my-orders" element={<MyOrders />} />
           </Routes>
         </div>
         <Footer />
