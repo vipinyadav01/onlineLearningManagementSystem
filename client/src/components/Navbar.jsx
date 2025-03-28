@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { User, Home, Clock, Book, LogIn } from 'lucide-react';
+import { User, Home, Clock, Book, LogIn ,ChevronDown} from 'lucide-react';
 import axios from 'axios';
 
 const Navbar = () => {
