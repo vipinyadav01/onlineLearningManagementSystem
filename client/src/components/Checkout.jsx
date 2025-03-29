@@ -10,7 +10,10 @@ import {
   Loader2,
   User,
   CheckCircle,
-  XCircle
+  XCircle,
+  ArrowLeft,
+  Calendar,
+  Info
 } from 'lucide-react';
 
 const Checkout = () => {
@@ -181,7 +184,7 @@ const Checkout = () => {
     try {
       const token = localStorage.getItem('token');
       const orderResponse = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/payment/create-order`,
+        `${import.meta.env.VITE_API_BASE_URL}/payments/create-order`, // Fixed endpoint
         {
           courseId: course._id,
           amount: course.price * 100,
@@ -190,7 +193,8 @@ const Checkout = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const { id: order_id } = orderResponse.data;
+      const { order } = orderResponse.data;
+      const order_id = order.id;
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -202,7 +206,7 @@ const Checkout = () => {
         handler: async (response) => {
           try {
             await axios.post(
-              `${import.meta.env.VITE_API_BASE_URL}/payment/verify-payment`,
+              `${import.meta.env.VITE_API_BASE_URL}/payments/verify-payment`, // Fixed endpoint
               { ...response, courseId: course._id },
               { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -213,6 +217,7 @@ const Checkout = () => {
             }), 1500);
           } catch (err) {
             setError('Payment verification failed');
+            setPaymentLoading(false);
           }
         },
         prefill: {
@@ -246,77 +251,158 @@ const Checkout = () => {
     );
   }
 
+  const handleGoBack = () => {
+    navigate('/courses');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-6 flex items-center justify-center">
-      <div className="max-w-2xl w-full bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8 space-y-6">
-        <div className="flex items-center space-x-3">
-          <ShieldCheck className="text-teal-400" size={32} />
-          <h1 className="text-3xl font-bold text-white">Complete Your Purchase</h1>
-        </div>
-
-        {/* Messages */}
-        {error && (
-          <div className="flex items-center space-x-3 bg-red-900/20 p-4 rounded-lg text-red-300">
-            <XCircle size={24} />
-            <p>{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="flex items-center space-x-3 bg-green-900/20 p-4 rounded-lg text-green-300">
-            <CheckCircle size={24} />
-            <p>{success}</p>
-          </div>
-        )}
-
-        {/* Course Details */}
-        <div className="bg-gray-700/50 p-6 rounded-xl space-y-4">
-          <h2 className="text-xl font-semibold text-white">{course?.title}</h2>
-          <p className="text-gray-300">{course?.description || 'No description available'}</p>
-          <p className="text-2xl font-bold text-teal-400">
-            ₹{course?.price?.toLocaleString('en-IN') || '0'}
-          </p>
-        </div>
-
-        {/* User Information */}
-        <div className="bg-gray-700/50 p-6 rounded-xl space-y-4">
-          <div className="flex items-center space-x-2">
-            <User className="text-teal-400" size={24} />
-            <h2 className="text-xl font-semibold text-white">Your Details</h2>
-          </div>
-          <div className="space-y-3 text-gray-200">
-            <p className="flex items-center space-x-2">
-              <Mail className="text-teal-400" size={20} />
-              <span>{user?.email || 'N/A'}</span>
-            </p>
-            <p className="flex items-center space-x-2">
-              <User className="text-teal-400" size={20} />
-              <span>{user?.name || 'N/A'}</span>
-            </p>
-            <p className="flex items-center space-x-2">
-              <MapPin className="text-teal-400" size={20} />
-              <span>{address || 'Location unavailable'}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Payment Button */}
-        <button
-          onClick={handlePayment}
-          disabled={paymentLoading}
-          className="w-full flex items-center justify-center space-x-3 bg-teal-500 hover:bg-teal-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-10 px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto">
+        <button 
+          onClick={handleGoBack}
+          className="mb-6 flex items-center text-teal-400 hover:text-teal-300 transition-colors"
         >
-          {paymentLoading ? (
-            <>
-              <Loader2 className="animate-spin" size={20} />
-              <span>Processing...</span>
-            </>
-          ) : (
-            <>
-              <CreditCard size={20} />
-              <span>Pay Now</span>
-            </>
-          )}
+          <ArrowLeft size={18} className="mr-2" />
+          <span>Back to Courses</span>
         </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Left Column - Checkout Details */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8">
+              <div className="flex items-center space-x-3 mb-6">
+                <ShieldCheck className="text-teal-400" size={32} />
+                <h1 className="text-3xl font-bold text-white">Secure Checkout</h1>
+              </div>
+
+              {/* Messages */}
+              {error && (
+                <div className="flex items-center space-x-3 bg-red-900/20 p-4 rounded-lg text-red-300 mb-6">
+                  <XCircle size={24} />
+                  <p>{error}</p>
+                </div>
+              )}
+              {success && (
+                <div className="flex items-center space-x-3 bg-green-900/20 p-4 rounded-lg text-green-300 mb-6">
+                  <CheckCircle size={24} />
+                  <p>{success}</p>
+                </div>
+              )}
+
+              {/* User Information */}
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2">
+                  <User className="text-teal-400" size={24} />
+                  <h2 className="text-xl font-semibold text-white">Your Details</h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-700/40 p-4 rounded-xl">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <User className="text-teal-400" size={18} />
+                      <span className="text-gray-400">Name</span>
+                    </div>
+                    <p className="text-white font-medium truncate">{user?.name || 'N/A'}</p>
+                  </div>
+
+                  <div className="bg-gray-700/40 p-4 rounded-xl">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Mail className="text-teal-400" size={18} />
+                      <span className="text-gray-400">Email</span>
+                    </div>
+                    <p className="text-white font-medium truncate">{user?.email || 'N/A'}</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-700/40 p-4 rounded-xl">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <MapPin className="text-teal-400" size={18} />
+                    <span className="text-gray-400">Location</span>
+                  </div>
+                  <p className="text-white font-medium">{address || 'Location unavailable'}</p>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-700">
+                <div className="flex items-center space-x-2 mb-4">
+                  <CreditCard className="text-teal-400" size={24} />
+                  <h2 className="text-xl font-semibold text-white">Payment</h2>
+                </div>
+
+                <p className="text-gray-300 mb-6">
+                  Secure payment processed by Razorpay. Your information is protected with industry-standard encryption.
+                </p>
+
+                <button
+                  onClick={handlePayment}
+                  disabled={paymentLoading}
+                  className="w-full flex items-center justify-center space-x-3 bg-teal-500 hover:bg-teal-600 text-white py-4 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                >
+                  {paymentLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={20} />
+                      <span>Pay ₹{course?.price?.toLocaleString('en-IN') || '0'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Order Summary */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8">
+              <h2 className="text-2xl font-bold text-white mb-6">Order Summary</h2>
+              
+              <div className="bg-gray-700/40 p-4 rounded-xl mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Course:</span>
+                  <span className="text-white font-medium">{course?.title}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Subtotal</span>
+                  <span className="text-white">₹{course?.price?.toLocaleString('en-IN') || '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Taxes</span>
+                  <span className="text-white">Included</span>
+                </div>
+                <div className="flex justify-between pt-4 border-t border-gray-700">
+                  <span className="text-lg font-bold text-white">Total</span>
+                  <span className="text-xl font-bold text-teal-400">₹{course?.price?.toLocaleString('en-IN') || '0'}</span>
+                </div>
+              </div>
+
+              <div className="bg-gray-700/20 rounded-xl p-4 mb-4">
+                <div className="flex items-start space-x-3">
+                  <Calendar className="text-teal-400 flex-shrink-0 mt-1" size={20} />
+                  <div>
+                    <h3 className="text-white font-medium">Instant Access</h3>
+                    <p className="text-gray-400 text-sm">Get immediate access to course content after payment</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-700/20 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
+                  <Info className="text-teal-400 flex-shrink-0 mt-1" size={20} />
+                  <div>
+                    <h3 className="text-white font-medium">Need Help?</h3>
+                    <p className="text-gray-400 text-sm">Contact our support team for any questions about your purchase</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

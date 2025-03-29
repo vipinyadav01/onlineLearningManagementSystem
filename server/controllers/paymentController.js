@@ -11,10 +11,16 @@ exports.createOrder = async (req, res) => {
   const { courseId, amount } = req.body;
 
   try {
+    // Create a shorter receipt ID that won't exceed 40 characters
+    // Use the last 8 chars of courseId + timestamp in seconds instead of milliseconds
+    const shortCourseId = courseId.slice(-8);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const receipt = `rcpt_${shortCourseId}_${timestamp}`;
+    
     const options = {
       amount: amount, // Amount should be in paise
       currency: 'INR',
-      receipt: `receipt_${courseId}_${Date.now()}`,
+      receipt: receipt,
     };
 
     const order = await razorpay.orders.create(options);
@@ -31,6 +37,7 @@ exports.createOrder = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      id: order.id,
       order,
     });
   } catch (error) {
