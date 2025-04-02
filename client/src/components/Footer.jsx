@@ -4,7 +4,7 @@ import React from 'react'
 const Footer = () => {
     return (
         <motion.footer 
-            className="border-t border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 backdrop-blur-md w-full"
+            className="border-t border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 backdrop-blur-md w-full pb-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1 }}
@@ -19,7 +19,6 @@ const Footer = () => {
                     <a href="#" className="text-slate-400 hover:text-white transition">Contact Us</a>
                 </div>
             </div>
-            
         </motion.footer>
     )
 }
