@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Youtube, Users, BookOpen, ArrowRight, Star, Quote, Sparkles, Zap, Globe } from 'lucide-react';
 import BlurText from '../components/BlurText';
-
 const Home = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -248,6 +247,7 @@ const Home = () => {
         </div>
       </section>
     </div>
+    
   );
 };
 
