@@ -93,7 +93,7 @@ const Home = () => {
               <Users className="text-teal-400 w-6 h-6 group-hover:text-teal-300 transition-colors" />
             </div>
             <div>
-              <h3 className="text-3xl font-bold">25K+</h3>
+              <h3 className="text-3xl font-bold">1K+</h3>
               <p className="text-sm text-slate-400">Students taught</p>
             </div>
           </div>
@@ -102,7 +102,7 @@ const Home = () => {
               <BookOpen className="text-teal-400 w-6 h-6 group-hover:text-teal-300 transition-colors" />
             </div>
             <div>
-              <h3 className="text-3xl font-bold">20+</h3>
+              <h3 className="text-3xl font-bold">5+</h3>
               <p className="text-sm text-slate-400">Expert instructors</p>
             </div>
           </div>
@@ -111,7 +111,7 @@ const Home = () => {
               <Youtube className="text-teal-400 w-6 h-6 group-hover:text-teal-300 transition-colors" />
             </div>
             <div>
-              <h3 className="text-3xl font-bold">502K+</h3>
+              <h3 className="text-3xl font-bold">50K+</h3>
               <p className="text-sm text-slate-400">YouTube subscribers</p>
             </div>
           </div>
