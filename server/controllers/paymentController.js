@@ -18,7 +18,7 @@ exports.createOrder = async (req, res) => {
     const receipt = `rcpt_${shortCourseId}_${timestamp}`;
     
     const options = {
-      amount: amount, // Amount should be in paise
+      amount: amount, 
       currency: 'INR',
       receipt: receipt,
     };
@@ -27,10 +27,10 @@ exports.createOrder = async (req, res) => {
 
     // Save initial order to database
     const newOrder = new Order({
-      userId: req.user.id, // Assuming req.user from auth middleware
+      userId: req.user.id, 
       courseId,
       orderId: order.id,
-      amount: amount / 100, // Convert back to rupees for storage
+      amount: amount / 100, 
       status: 'Pending',
     });
     await newOrder.save();
