@@ -2,59 +2,78 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
+  FaSearch, 
+  FaFilter, 
+  FaSync, 
+  FaCheck, 
+  FaTimes, 
+  FaComment,
+  FaChartBar,
+  FaList
+} from 'react-icons/fa';
+import { 
   Users, 
   Clock, 
   BookOpen, 
   TrendingUp, 
   ActivityIcon 
 } from 'lucide-react';
+import DoubtList from './DoubtList';
+import StatsPanel from './StatsPanel';
 
-const Dashboard = ({ onLogout }) => {
+const AdminDashboard = ({ onLogout }) => {
+  const [activeTab, setActiveTab] = useState('doubts');
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
+    // Check admin authentication
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
 
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/admin/dashboard-stats`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.data.success) {
-          const hour = new Date().getHours();
-          const timeBasedGreeting =
-            hour < 12 ? 'Good morning' :
-            hour < 18 ? 'Good afternoon' :
-            'Good evening';
-
-          setWelcomeMessage(`${timeBasedGreeting}, Admin! 👋`);
-          setStats(response.data.stats);
-        }
-      } catch (error) {
-        if (error.response?.status === 401 && typeof onLogout === 'function') {
-          onLogout();
-          navigate('/login');
-        }
-        setError(error.response?.data?.message || 'Failed to load dashboard statistics');
-        console.error('Error fetching dashboard stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    // Fetch dashboard stats when component mounts
     fetchDashboardStats();
-  }, [navigate, onLogout]);
+  }, [navigate]);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('adminToken');
+      
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/admin/dashboard-stats`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        const hour = new Date().getHours();
+        const timeBasedGreeting =
+          hour < 12 ? 'Good morning' :
+          hour < 18 ? 'Good afternoon' :
+          'Good evening';
+
+        setWelcomeMessage(`${timeBasedGreeting}, Admin! 👋`);
+        setStats(response.data.stats);
+      }
+    } catch (error) {
+      if (error.response?.status === 401 && typeof onLogout === 'function') {
+        onLogout();
+        navigate('/login');
+      }
+      setError(error.response?.data?.message || 'Failed to load dashboard statistics');
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // StatCard component with modern design
   const StatCard = ({ title, value, icon, trend, bgColor, textColor }) => (
@@ -92,7 +111,7 @@ const Dashboard = ({ onLogout }) => {
   );
 
   // Loading state with skeleton loader
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="w-full max-w-4xl">
@@ -110,7 +129,7 @@ const Dashboard = ({ onLogout }) => {
   }
 
   // Error state
-  if (error) {
+  if (error && !stats) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
@@ -129,39 +148,87 @@ const Dashboard = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">{welcomeMessage}</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard
-            title="Total Users"
-            value={stats?.totalUsers}
-            icon={<Users className="w-24 h-24" />}
-            trend={5.2}
-            bgColor="bg-white"
-            textColor="text-blue-600"
-          />
-          <StatCard
-            title="Recent Users"
-            value={stats?.recentUsers}
-            icon={<Clock className="w-24 h-24" />}
-            trend={3.8}
-            bgColor="bg-white"
-            textColor="text-green-600"
-          />
-          <StatCard
-            title="Top Course Enrollments"
-            value={stats?.topCourses?.[0]?.totalEnrollments}
-            icon={<BookOpen className="w-24 h-24" />}
-            trend={7.5}
-            bgColor="bg-white"
-            textColor="text-purple-600"
-          />
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            {welcomeMessage && (
+              <p className="text-sm text-gray-500 mt-1">{welcomeMessage}</p>
+            )}
+          </div>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('adminToken');
+              navigate('/admin/login');
+            }}
+            className="text-red-600 hover:text-red-800"
+          >
+            Logout
+          </button>
         </div>
-      </div>
+      </header>
+
+      {/* Quick Stats */}
+      {stats && (
+        <div className="bg-gray-50 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatCard
+                title="Total Users"
+                value={stats.totalUsers}
+                icon={<Users className="w-24 h-24" />}
+                trend={5.2}
+                bgColor="bg-white"
+                textColor="text-blue-600"
+              />
+              <StatCard
+                title="Recent Users"
+                value={stats.recentUsers}
+                icon={<Clock className="w-24 h-24" />}
+                trend={3.8}
+                bgColor="bg-white"
+                textColor="text-green-600"
+              />
+              <StatCard
+                title="Top Course Enrollments"
+                value={stats.topCourses?.[0]?.totalEnrollments}
+                icon={<BookOpen className="w-24 h-24" />}
+                trend={7.5}
+                bgColor="bg-white"
+                textColor="text-purple-600"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        {/* Tabs */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('doubts')}
+              className={`${activeTab === 'doubts' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+            >
+              <FaList className="mr-2" /> Doubts
+            </button>
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`${activeTab === 'stats' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+            >
+              <FaChartBar className="mr-2" /> Statistics
+            </button>
+          </nav>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'doubts' ? <DoubtList /> : <StatsPanel />}
+      </main>
     </div>
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

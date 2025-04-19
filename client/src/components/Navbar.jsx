@@ -16,8 +16,8 @@ const Navbar = () => {
     { path: '/', label: 'Home', icon: Home },
     { path: '/courses', label: 'Courses', icon: Book },
     {
-      path: '/live-course',
-      label: 'LIVE Course',
+      path: '/doubt',
+      label: 'Doubt',
       icon: Clock,
       badge: <span className="ml-1.5 bg-gradient-to-r from-red-500 to-pink-500 text-[0.65rem] px-2 py-0.5 rounded-full uppercase tracking-wide shadow-md font-semibold">Live</span>
     },

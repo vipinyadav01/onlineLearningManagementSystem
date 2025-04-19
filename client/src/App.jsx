@@ -11,6 +11,7 @@ import RequestCallback from './pages/RequestCallback';
 import Checkout from './components/Checkout';
 import MyOrders from './components/MyOrders';
 import Testimonials from './pages/Testimonial';
+import DoubtForm from "./components/DoubtForm"
 
 const ComingSoon = ({ title }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -95,6 +96,7 @@ const App = () => {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path='/testimonials' element={<Testimonials />} />
+            <Route path='/doubt' element={<DoubtForm />} />
           </Routes>
         </div>
         <Footer />
