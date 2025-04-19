@@ -13,7 +13,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Debugging API Base URL
 console.log("API Base URL:", process.env.VITE_API_BASE_URL);
 
 // Routes
