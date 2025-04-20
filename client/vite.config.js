@@ -6,26 +6,26 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', 
+      registerType: 'autoUpdate',
       devOptions: {
-        enabled: true, 
+        enabled: true,
       },
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'], 
       manifest: {
         name: 'TechBit Academy',
         short_name: 'TechBit',
-        description: 'A modern web development academy web framework for developing web applications and a Revolutionary Learning Platform .',
+        description: 'A modern web development academy and revolutionary learning platform.',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/', 
-        scope: '/',
+        start_url: './', 
+        scope: './',
         icons: [
           {
             src: '/pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any', 
+            purpose: 'any',
           },
           {
             src: '/pwa-512x512.png',
@@ -37,11 +37,11 @@ export default defineConfig({
       },
       workbox: {
         globDirectory: 'dist', 
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp}'], 
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        runtimeCaching: [ 
+        runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.destination === 'image', 
+            urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
               cacheName: 'images',
@@ -67,11 +67,8 @@ export default defineConfig({
       },
     }),
   ],
-  server: {
-    port: 3000, 
-  },
   build: {
-    outDir: 'dist', 
-    sourcemap: true, 
+    outDir: 'dist',
+    sourcemap: true,
   },
 });

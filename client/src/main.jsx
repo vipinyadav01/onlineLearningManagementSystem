@@ -9,3 +9,11 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+if ("serviceWorker" in navigator && import.meta.env.DEV) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      registration.unregister();
+    });
+  });
+}
