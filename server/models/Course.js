@@ -48,7 +48,7 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  isNew: {
+  isNewCourse: { // Renamed from isNew
     type: Boolean,
     default: false,
   },
@@ -64,7 +64,7 @@ const courseSchema = new mongoose.Schema({
       isFree: Boolean,
     }],
   }],
-  image: String, 
+  image: String,
   createdAt: {
     type: Date,
     default: Date.now,
