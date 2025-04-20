@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-console.log('API Base URL:', process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`);
+console.log('API Base URL:', process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3000}`);
 
 // Routes
 
