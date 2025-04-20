@@ -24,13 +24,13 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/doubts', require('./routes/doubtRoutes')); 
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({ message: 'Welcome to the API server of TechBits-Academy ' });
 });
 
 
-app.get('/show', (req, res) => {
-  res.send('✅ /show route is working!');
+app.get("/api/hello", (_req, res) => {
+  res.json({ message: "Hello from the server!" });
 });
 
 
@@ -44,7 +44,7 @@ mongoose
   });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error('Server error:', err);
   res.status(500).json({ 
     success: false, 
