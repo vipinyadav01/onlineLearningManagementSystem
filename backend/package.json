@@ -1,18 +1,14 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "A server application for handling API requests and managing data.",
-  "main": "server.js",
+  "description": "Serverless API for Vercel deployment",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "build":"npm i",
-    "dev": "nodemon server.js"
+    "dev": "vercel dev",
+    "start": "node index.js",
+    "build": "vercel build"
+    
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
@@ -28,7 +24,9 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
