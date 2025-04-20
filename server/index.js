@@ -27,7 +27,10 @@ console.log('API Base URL:', process.env.API_BASE_URL || `http://localhost:${pro
   app.use('/api/reviews', require('./routes/reviewRoutes'));
   app.use('/api/doubts', require('./routes/doubtRoutes')); 
 
-
+  app.get('/', (req, res) => {
+    res.json({ message: 'Welcome to the API' });
+  }
+  );
 // MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {
