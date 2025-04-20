@@ -7,7 +7,6 @@ const path = require('path');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -36,7 +35,7 @@ app.get("/api/hello", (_req, res) => {
 
 // MongoDB connection
 mongoose
-  .connect(process.env.MONGODB_URI) // Removed deprecated options
+  .connect(process.env.MONGODB_URI) 
   .then(() => console.log('MongoDB connected'))
   .catch((err) => {
     console.error('MongoDB connection error:', err);
