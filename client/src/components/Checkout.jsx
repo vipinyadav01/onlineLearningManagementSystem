@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -28,9 +28,45 @@ const Checkout = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [user, setUser] = useState(null);
-  const [address, setAddress] = useState(null);
+  const [address, setAddress] = useState('Loading location...');
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
-  // Token verification
+  // Load Razorpay script with retry logic
+  useEffect(() => {
+    const loadRazorpayScript = async (attempt = 1) => {
+      try {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        
+        return new Promise((resolve, reject) => {
+          script.onload = () => resolve(true);
+          script.onerror = () => reject();
+          document.body.appendChild(script);
+        });
+      } catch (err) {
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          return loadRazorpayScript(attempt + 1);
+        }
+        return false;
+      }
+    };
+    
+    const initializeRazorpay = async () => {
+      try {
+        const isLoaded = await loadRazorpayScript();
+        setRazorpayLoaded(isLoaded);
+        if (!isLoaded) {
+          setError('Payment system failed to load. Please refresh or check your connection.');
+        }
+      } catch (err) {
+        setError('Failed to load payment system. Please try again later.');
+      }
+    };
+    
+    initializeRazorpay();
+  }, []);
+
   const verifyToken = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -46,6 +82,7 @@ const Checkout = () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/verify-token`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000
       });
       return response.data.isValid;
     } catch (err) {
@@ -61,36 +98,36 @@ const Checkout = () => {
     }
   }, [navigate, course]);
 
-  // Fetch user location
   const fetchUserLocation = useCallback(async () => {
-    if (!navigator.geolocation) {
-      return 'Geolocation not supported';
-    }
-
     try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
-      });
+      const ipResponse = await axios.get('https://ipapi.co/json/', { timeout: 3000 });
+      if (ipResponse.data?.city) {
+        return `${ipResponse.data.city}, ${ipResponse.data.country_name}`;
+      }
+      if (navigator.geolocation) {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
 
-      const { latitude, longitude } = position.coords;
-      const res = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-        { timeout: 5000 }
-      );
-      return res.data?.display_name || 'Location not found';
+        const { latitude, longitude } = position.coords;
+        const res = await axios.get(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          { timeout: 5000 }
+        );
+        return res.data?.display_name || 'Your location';
+      }
+      return 'Location services not enabled';
     } catch (err) {
-      console.error('Geolocation error:', err);
+      console.error('Location detection error:', err);
       return 'Location unavailable';
     }
   }, []);
-
-  // Fetch user data
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         navigate('/login');
-        return;
+        return null;
       }
 
       const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
@@ -98,44 +135,19 @@ const Checkout = () => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
+        timeout: 10000
       });
 
-      if (!response.data || !response.data.success) {
+      if (!response.data?.success) {
         throw new Error('Invalid user data response');
       }
 
       return response.data.data;
     } catch (error) {
-      console.error('Detailed Error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-
-      if (error.response) {
-        switch (error.response.status) {
-          case 404:
-            setError('User profile not found. Please log in again.');
-            break;
-          case 401:
-            setError('Authentication expired. Please log in again.');
-            break;
-          default:
-            setError('An unexpected error occurred. Please try again.');
-        }
-      } else if (error.request) {
-        setError('No response from server. Check your network connection.');
-      } else {
-        setError('Error processing your request. Please try again.');
-      }
-
-      localStorage.removeItem('token');
-      navigate('/login');
-      return null;
+      console.error('User data fetch error:', error);
+      throw error;
     }
-  };
-
-  // Initial data fetch
+  }, [navigate]);
   useEffect(() => {
     let isMounted = true;
 
@@ -145,12 +157,13 @@ const Checkout = () => {
         return;
       }
 
-      const tokenValid = await verifyToken();
-      if (!tokenValid || !isMounted) return;
-
       try {
-        const userData = await fetchUserData();
-        const location = await fetchUserLocation();
+        const tokenValid = await verifyToken();
+        if (!tokenValid || !isMounted) return;
+        const [userData, location] = await Promise.all([
+          fetchUserData(),
+          fetchUserLocation()
+        ]);
 
         if (isMounted) {
           setUser(userData);
@@ -166,15 +179,19 @@ const Checkout = () => {
     };
 
     initializeCheckout();
-    return () => {
-      isMounted = false;
-    };
-  }, [course, navigate, verifyToken, fetchUserLocation]);
-
-  // Handle payment
+    return () => { isMounted = false; };
+  }, [course, navigate, verifyToken, fetchUserLocation, fetchUserData]);
+  const generateIdempotencyKey = useCallback(() => {
+    return `${course?._id}-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+  }, [course]);
   const handlePayment = async () => {
     if (!course?._id || !user) {
       setError('Missing required information');
+      return;
+    }
+
+    if (!razorpayLoaded) {
+      setError('Payment system is still loading. Please try again in a moment.');
       return;
     }
 
@@ -184,58 +201,110 @@ const Checkout = () => {
 
     try {
       const token = localStorage.getItem('token');
+      const idempotencyKey = generateIdempotencyKey();
+
       const orderResponse = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/payments/create-order`,
         {
           courseId: course._id,
-          amount: course.price * 100,
+          amount: Math.round(course.price * 100), 
           currency: 'INR',
+          idempotencyKey
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'X-Idempotency-Key': idempotencyKey
+          },
+          timeout: 15000
+        }
       );
 
-      const { order } = orderResponse.data;
-      const order_id = order.id;
+      if (!orderResponse.data?.success) {
+        throw new Error(orderResponse.data?.message || 'Failed to create order');
+      }
 
+      const { order } = orderResponse.data;
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: course.price * 100,
+        amount: Math.round(course.price * 100),
         currency: 'INR',
-        name: 'Course Platform',
+        name: 'TechBits-Academy',
         description: `Payment for ${course.title}`,
-        order_id,
+        order_id: order.id,
         handler: async (response) => {
           try {
-            await axios.post(
+            const verifyResponse = await axios.post(
               `${import.meta.env.VITE_API_BASE_URL}/payments/verify-payment`,
-              { ...response, courseId: course._id },
-              { headers: { Authorization: `Bearer ${token}` } }
+              { 
+                ...response, 
+                courseId: course._id,
+                idempotencyKey
+              },
+              { 
+                headers: { 
+                  Authorization: `Bearer ${token}`,
+                  'X-Idempotency-Key': idempotencyKey
+                },
+                timeout: 15000
+              }
             );
 
-            setSuccess('Payment successful!');
+            if (!verifyResponse.data?.success) {
+              throw new Error(verifyResponse.data?.message || 'Payment verification failed');
+            }
+
+            setSuccess('Payment successful! Redirecting...');
+            try {
+              const userResponse = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              setUser(userResponse.data.data);
+            } catch (err) {
+              console.error('Error refreshing user data:', err);
+            }
+
             setTimeout(() => navigate('/my-orders', {
-              state: { message: 'Payment successful!' }
+              state: { 
+                message: 'Payment successful!',
+                course
+              }
             }), 1500);
           } catch (err) {
-            setError('Payment verification failed');
+            console.error('Payment verification error:', err);
+            setError(err.response?.data?.message || 'Payment verification failed');
             setPaymentLoading(false);
           }
         },
         prefill: {
           name: user.name || '',
           email: user.email || '',
+          contact: user.phone || ''
         },
         theme: {
           color: '#14b8a6',
         },
         modal: {
-          ondismiss: () => setPaymentLoading(false)
+          ondismiss: () => {
+            setPaymentLoading(false);
+            setError('Payment cancelled by user');
+          }
+        },
+        notes: {
+          courseId: course._id,
+          userId: user._id
         }
       };
-
       const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', (response) => {
+        setError(response.error.description || 'Payment failed');
+        setPaymentLoading(false);
+      });
+      
       rzp.open();
     } catch (err) {
+      console.error('Payment error:', err);
       setError(err.response?.data?.message || 'Payment initiation failed');
       setPaymentLoading(false);
     }
@@ -253,7 +322,7 @@ const Checkout = () => {
   }
 
   const handleGoBack = () => {
-    navigate('/courses');
+    navigate(course?._id ? `/course/${course._id}` : '/courses');
   };
 
   return (
@@ -264,14 +333,13 @@ const Checkout = () => {
           className="mb-8 flex items-center text-teal-400 hover:text-teal-300 transition-all duration-300 group"
         >
           <ArrowLeft size={18} className="mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
-          <span>Back to Courses</span>
+          <span>Back to {course ? 'Course' : 'Courses'}</span>
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Checkout Details */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-gray-800/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-700/50 p-8 relative overflow-hidden">
-              {/* Background pattern */}
               <div className="absolute inset-0 opacity-5">
                 <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-teal-400"></div>
                 <div className="absolute -left-20 -bottom-20 w-64 h-64 rounded-full bg-purple-500"></div>
@@ -285,21 +353,27 @@ const Checkout = () => {
                   <h1 className="text-3xl font-bold text-white tracking-tight">Secure Checkout</h1>
                 </div>
 
-                {/* Messages */}
+                {!razorpayLoaded && !error && (
+                  <div className="flex items-center space-x-3 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl text-yellow-300 mb-6">
+                    <Loader2 className="animate-spin" size={20} />
+                    <p>Loading payment system...</p>
+                  </div>
+                )}
+
                 {error && (
-                  <div className="flex items-center space-x-3 bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-300 mb-6 animate-fadeIn">
+                  <div className="flex items-center space-x-3 bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-300 mb-6">
                     <XCircle size={24} />
                     <p>{error}</p>
                   </div>
                 )}
+
                 {success && (
-                  <div className="flex items-center space-x-3 bg-green-500/10 border border-green-500/20 p-4 rounded-xl text-green-300 mb-6 animate-fadeIn">
+                  <div className="flex items-center space-x-3 bg-green-500/10 border border-green-500/20 p-4 rounded-xl text-green-300 mb-6">
                     <CheckCircle size={24} />
                     <p>{success}</p>
                   </div>
                 )}
 
-                {/* User Information */}
                 <div className="space-y-6">
                   <div className="flex items-center space-x-3">
                     <div className="bg-teal-400/10 p-2 rounded-lg">
@@ -314,7 +388,7 @@ const Checkout = () => {
                         <User className="text-teal-400" size={16} />
                         <span className="text-gray-400 text-sm">Name</span>
                       </div>
-                      <p className="text-white font-medium truncate">{user?.name || 'N/A'}</p>
+                      <p className="text-white font-medium truncate">{user?.name || 'Not provided'}</p>
                     </div>
 
                     <div className="bg-gray-700/30 backdrop-blur-sm p-4 rounded-xl border border-gray-700/50 hover:border-teal-400/30 transition-all duration-300">
@@ -322,16 +396,16 @@ const Checkout = () => {
                         <Mail className="text-teal-400" size={16} />
                         <span className="text-gray-400 text-sm">Email</span>
                       </div>
-                      <p className="text-white font-medium truncate">{user?.email || 'N/A'}</p>
+                      <p className="text-white font-medium truncate">{user?.email || 'Not provided'}</p>
                     </div>
                   </div>
 
                   <div className="bg-gray-700/30 backdrop-blur-sm p-4 rounded-xl border border-gray-700/50 hover:border-teal-400/30 transition-all duration-300">
                     <div className="flex items-center space-x-2 mb-2">
                       <MapPin className="text-teal-400" size={16} />
-                      <span className="text-gray-400 text-sm">Location</span>
+                      <span className="text-gray-400 text-sm">Approximate Location</span>
                     </div>
-                    <p className="text-white font-medium text-sm">{address || 'Location unavailable'}</p>
+                    <p className="text-white font-medium text-sm">{address}</p>
                   </div>
                 </div>
 
@@ -352,13 +426,23 @@ const Checkout = () => {
 
                   <button
                     onClick={handlePayment}
-                    disabled={paymentLoading}
+                    disabled={paymentLoading || !razorpayLoaded || !!success}
                     className="w-full flex items-center justify-center space-x-3 bg-teal-500 hover:bg-teal-600 text-white py-5 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:translate-y-[-2px] active:translate-y-0"
                   >
                     {paymentLoading ? (
                       <>
                         <Loader2 className="animate-spin" size={20} />
-                        <span>Processing...</span>
+                        <span>Processing Payment...</span>
+                      </>
+                    ) : success ? (
+                      <>
+                        <CheckCircle size={20} />
+                        <span>Payment Successful</span>
+                      </>
+                    ) : !razorpayLoaded ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        <span>Loading Payment...</span>
                       </>
                     ) : (
                       <>
@@ -402,7 +486,6 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Additional info cards */}
               <div className="space-y-4">
                 <div className="bg-gray-700/20 backdrop-blur-sm rounded-xl p-4 border border-gray-700/30 hover:border-teal-400/20 transition-all duration-300">
                   <div className="flex items-start space-x-3">

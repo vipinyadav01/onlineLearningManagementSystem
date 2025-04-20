@@ -23,7 +23,7 @@ const DoubtList = () => {
       const token = localStorage.getItem('adminToken');
       
       const [doubtsRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin`, {
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-doubt`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats`, {
