@@ -1,15 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
-// Debugging middleware
+
+// Debugging log to confirm controller functions are defined
+console.log('Loaded paymentController:', paymentController);
+
 router.use((req, res, next) => {
   console.log(`Incoming Request: ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Fix incorrect route path
 router.post('/create-order', authMiddleware, paymentController.createOrder);
 router.post('/verify-payment', authMiddleware, paymentController.verifyPayment);
 

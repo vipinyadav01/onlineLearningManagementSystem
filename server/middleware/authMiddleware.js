@@ -7,6 +7,7 @@ const authMiddleware = async (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({
+      success: false,
       message: 'Authentication required',
       error: 'No token provided'
     });
@@ -14,10 +15,11 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('_id email role');
 
     if (!user) {
       return res.status(401).json({
+        success: false,
         message: 'Authentication failed',
         error: 'User no longer exists'
       });
@@ -31,35 +33,33 @@ const authMiddleware = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.error('Authentication error:', error);
     const errorResponses = {
-      'TokenExpiredError': {
+      TokenExpiredError: {
         status: 401,
         message: 'Authentication token has expired'
       },
-      'JsonWebTokenError': {
+      JsonWebTokenError: {
         status: 401,
         message: 'Invalid authentication token'
       },
-      'NotBeforeError': {
+      NotBeforeError: {
         status: 401,
         message: 'Token not yet active'
       },
-      'default': {
+      default: {
         status: 500,
         message: 'Internal server error during authentication'
       }
     };
 
     const errorResponse = errorResponses[error.name] || errorResponses.default;
-
-    console.error('Authentication Error:', error);
     res.status(errorResponse.status).json({
+      success: false,
       message: 'Authentication failed',
       error: errorResponse.message
     });
   }
 };
 
-module.exports = {
-  authMiddleware
-};
+module.exports = authMiddleware;

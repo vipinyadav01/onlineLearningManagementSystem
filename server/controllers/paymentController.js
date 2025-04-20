@@ -2,6 +2,10 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Order = require('../models/Order');
 
+// Optional: Log to ensure env variables are loaded correctly
+console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
+console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET);
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -11,28 +15,26 @@ exports.createOrder = async (req, res) => {
   const { courseId, amount } = req.body;
 
   try {
-    // Create a shorter receipt ID that won't exceed 40 characters
-    // Use the last 8 chars of courseId + timestamp in seconds instead of milliseconds
     const shortCourseId = courseId.slice(-8);
     const timestamp = Math.floor(Date.now() / 1000);
     const receipt = `rcpt_${shortCourseId}_${timestamp}`;
-    
+
     const options = {
-      amount: amount, 
+      amount: amount, // amount in paise
       currency: 'INR',
       receipt: receipt,
     };
 
     const order = await razorpay.orders.create(options);
 
-    // Save initial order to database
     const newOrder = new Order({
-      userId: req.user.id, 
+      userId: req.user.id,
       courseId,
       orderId: order.id,
-      amount: amount / 100, 
+      amount: amount / 100, // convert to rupees
       status: 'Pending',
     });
+
     await newOrder.save();
 
     res.status(200).json({
@@ -61,8 +63,7 @@ exports.verifyPayment = async (req, res) => {
       .digest('hex');
 
     if (expectedSignature === razorpay_signature) {
-      // Update order status in database
-      const order = await Order.findOneAndUpdate(
+      await Order.findOneAndUpdate(
         { orderId: razorpay_order_id },
         {
           paymentId: razorpay_payment_id,
@@ -70,9 +71,6 @@ exports.verifyPayment = async (req, res) => {
         },
         { new: true }
       );
-
-      // Optionally enroll user in course
-      // await enrollUserInCourse(req.user.id, courseId);
 
       res.status(200).json({
         success: true,
@@ -83,6 +81,7 @@ exports.verifyPayment = async (req, res) => {
         { orderId: razorpay_order_id },
         { status: 'Failed' }
       );
+
       res.status(400).json({
         success: false,
         message: 'Invalid payment signature',

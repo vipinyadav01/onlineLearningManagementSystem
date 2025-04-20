@@ -15,7 +15,7 @@ const generateAccessToken = (id, expiresIn = '1h') => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn,
     issuer: 'TechBit Academy',
-    algorithm: 'HS256'
+    algorithm: 'HS256',
   });
 };
 
@@ -23,12 +23,12 @@ const generateRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: '90d',
     issuer: 'TechBit Academy',
-    algorithm: 'HS256'
+    algorithm: 'HS256',
   });
 };
 
 // Signup Controller
-exports.signup = async (req, res) => {
+const signup = async (req, res) => {
   try {
     const { name, email, password, profilePic } = req.body;
 
@@ -36,21 +36,21 @@ exports.signup = async (req, res) => {
     if (!name || name.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'Name must be at least 2 characters long'
+        message: 'Name must be at least 2 characters long',
       });
     }
 
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid email format'
+        message: 'Invalid email format',
       });
     }
 
     if (!password || password.length < 8) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 8 characters long'
+        message: 'Password must be at least 8 characters long',
       });
     }
 
@@ -61,16 +61,16 @@ exports.signup = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Email already registered'
+        message: 'Email already registered',
       });
     }
 
-    // Create new user
+    // Initialize user object
     const user = new User({
       name: name.trim(),
       email: sanitizedEmail,
-      password,
-      profilePic: profilePic || undefined
+      password, // Password will be hashed by pre-save middleware
+      profilePic: null,
     });
 
     // Upload profile picture to Cloudinary if provided
@@ -78,14 +78,12 @@ exports.signup = async (req, res) => {
       try {
         const cloudinaryResponse = await cloudinary.uploader.upload(profilePic, {
           folder: 'user_profiles',
-          transformation: [
-            { width: 500, height: 500, crop: 'limit' }
-          ]
+          transformation: [{ width: 500, height: 500, crop: 'limit' }],
         });
         user.profilePic = cloudinaryResponse.secure_url;
       } catch (cloudinaryError) {
         console.error('Cloudinary Upload Error:', cloudinaryError);
-        // Optionally, you can choose to continue without profile pic
+        // Continue without profile picture
       }
     }
 
@@ -107,9 +105,9 @@ exports.signup = async (req, res) => {
         email: user.email,
         profilePic: user.profilePic,
         accessToken,
-        refreshToken
+        refreshToken,
       },
-      message: 'Registration successful'
+      message: 'Registration successful',
     });
   } catch (error) {
     console.error('Detailed Signup Error:', {
@@ -117,26 +115,27 @@ exports.signup = async (req, res) => {
       stack: error.stack,
       name: error.name,
       code: error.code,
-      details: error.errors
+      details: error.errors,
     });
 
     res.status(500).json({
       success: false,
       message: 'Server error during signup',
       errorType: error.name,
-      errorMessage: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
+      errorMessage: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
     });
   }
 };
 
-exports.login = async (req, res) => {
+// Login Controller
+const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password'
+        message: 'Please provide email and password',
       });
     }
 
@@ -147,14 +146,14 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid credentials',
       });
     }
 
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Account is not active'
+        message: 'Account is not active',
       });
     }
 
@@ -163,7 +162,7 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid credentials',
       });
     }
 
@@ -183,28 +182,28 @@ exports.login = async (req, res) => {
         profilePic: user.profilePic,
         isAdmin: user.isAdmin,
         accessToken,
-        refreshToken
+        refreshToken,
       },
-      message: 'Login successful'
+      message: 'Login successful',
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during login',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
 
 // Refresh Token Controller
-exports.refreshToken = async (req, res) => {
+const refreshToken = async (req, res) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
     return res.status(401).json({
       success: false,
-      message: 'Refresh token required'
+      message: 'Refresh token required',
     });
   }
 
@@ -215,7 +214,7 @@ exports.refreshToken = async (req, res) => {
     if (!user || !user.isActive || user.refreshToken !== refreshToken) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid or expired refresh token'
+        message: 'Invalid or expired refresh token',
       });
     }
 
@@ -225,21 +224,21 @@ exports.refreshToken = async (req, res) => {
       success: true,
       data: {
         accessToken: newAccessToken,
-        refreshToken: user.refreshToken 
+        refreshToken: user.refreshToken,
       },
-      message: 'Token refreshed successfully'
+      message: 'Token refreshed successfully',
     });
   } catch (error) {
     console.error('Refresh token error:', error);
     res.status(401).json({
       success: false,
-      message: 'Invalid or expired refresh token'
+      message: 'Invalid or expired refresh token',
     });
   }
 };
 
 // Verify Token Controller
-exports.verifyToken = async (req, res) => {
+const verifyToken = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
 
@@ -247,7 +246,7 @@ exports.verifyToken = async (req, res) => {
       return res.status(401).json({
         success: false,
         isValid: false,
-        message: 'Invalid or inactive user'
+        message: 'Invalid or inactive user',
       });
     }
 
@@ -259,56 +258,56 @@ exports.verifyToken = async (req, res) => {
         name: user.name,
         email: user.email,
         profilePic: user.profilePic,
-        isAdmin: user.isAdmin || false
+        isAdmin: user.isAdmin || false,
       },
-      message: 'Token is valid'
+      message: 'Token is valid',
     });
   } catch (error) {
     console.error('Token verification error:', error);
     res.status(401).json({
       success: false,
       isValid: false,
-      message: 'Invalid or expired token'
+      message: 'Invalid or expired token',
     });
   }
 };
 
 // Logout Controller
-exports.logout = async (req, res) => {
+const logout = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (user) {
-      user.refreshToken = null; 
+      user.refreshToken = null;
       await user.save();
     }
 
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      sameSite: 'strict',
     });
 
     res.status(200).json({
       success: true,
-      message: 'Logout successful'
+      message: 'Logout successful',
     });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during logout'
+      message: 'Server error during logout',
     });
   }
 };
 
 // Get Current User
-exports.getMe = async (req, res) => {
+const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user || !user.isActive) {
       return res.status(404).json({
         success: false,
-        message: 'User not found or deactivated'
+        message: 'User not found or deactivated',
       });
     }
 
@@ -320,13 +319,13 @@ exports.getMe = async (req, res) => {
     console.error('Get me error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error retrieving user'
+      message: 'Server error retrieving user',
     });
   }
 };
 
 // Update Profile
-exports.updateProfile = async (req, res) => {
+const updateProfile = async (req, res) => {
   try {
     const { name, profilePic } = req.body;
     const user = await User.findById(req.user.id);
@@ -334,12 +333,23 @@ exports.updateProfile = async (req, res) => {
     if (!user || !user.isActive) {
       return res.status(404).json({
         success: false,
-        message: 'User not found or deactivated'
+        message: 'User not found or deactivated',
       });
     }
 
     if (name) user.name = name.trim();
-    if (profilePic) user.profilePic = profilePic;
+    if (profilePic) {
+      try {
+        const cloudinaryResponse = await cloudinary.uploader.upload(profilePic, {
+          folder: 'user_profiles',
+          transformation: [{ width: 500, height: 500, crop: 'limit' }],
+        });
+        user.profilePic = cloudinaryResponse.secure_url;
+      } catch (cloudinaryError) {
+        console.error('Cloudinary Upload Error:', cloudinaryError);
+        // Continue without updating profile picture
+      }
+    }
 
     await user.save();
 
@@ -349,28 +359,35 @@ exports.updateProfile = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        profilePic: user.profilePic
+        profilePic: user.profilePic,
       },
-      message: 'Profile updated successfully'
+      message: 'Profile updated successfully',
     });
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error updating profile'
+      message: 'Error updating profile',
     });
   }
 };
 
 // Reset Password
-exports.resetPassword = async (req, res) => {
+const resetPassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Current and new passwords are required'
+        message: 'Current and new passwords are required',
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 8 characters long',
       });
     }
 
@@ -379,7 +396,7 @@ exports.resetPassword = async (req, res) => {
     if (!user || !user.isActive) {
       return res.status(404).json({
         success: false,
-        message: 'User not found or deactivated'
+        message: 'User not found or deactivated',
       });
     }
 
@@ -387,23 +404,33 @@ exports.resetPassword = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Current password is incorrect'
+        message: 'Current password is incorrect',
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = newPassword; // Will be hashed by pre-save middleware
     await user.save();
 
     res.status(200).json({
-      success: true,
-      message: 'Password reset successful'
+      success: false,
+      message: 'Password reset successful',
     });
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error resetting password'
+      message: 'Error resetting password',
     });
   }
+};
+
+module.exports = {
+  signup,
+  login,
+  refreshToken,
+  verifyToken,
+  logout,
+  getMe,
+  updateProfile,
+  resetPassword,
 };
