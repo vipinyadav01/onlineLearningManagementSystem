@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, PieChart, LineChart, RefreshCw, AlertCircle } from 'lucide-react';
@@ -10,50 +10,65 @@ const StatsPanel = () => {
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('week');
   const navigate = useNavigate();
-  const chartRef = React.createRef();
+  const chartRef = useRef(null);
+  const chartInstanceRef = useRef(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const token = localStorage.getItem('adminToken');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
         const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats`,
+          `${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats?timeRange=${timeRange}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        
+
         setStats(response.data.data);
-        setError(null);
       } catch (err) {
         console.error('Error fetching stats:', err);
-        setError(err.response?.data?.message || 'Failed to fetch statistics');
+        let errorMessage = err.response?.data?.message || 'Failed to fetch statistics';
         if (err.response?.status === 401) {
+          errorMessage = 'Session expired. Please log in again.';
           localStorage.removeItem('adminToken');
           navigate('/admin/login');
         }
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, [timeRange]);
+  }, [timeRange, navigate]);
 
   useEffect(() => {
     if (stats && chartRef.current) {
       renderChart();
     }
-  }, [stats, chartRef.current]);
+
+    // Cleanup chart on unmount
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+        chartInstanceRef.current = null;
+      }
+    };
+  }, [stats]);
 
   const renderChart = () => {
     const ctx = chartRef.current.getContext('2d');
-    
+
     // Destroy previous chart if it exists
-    if (chartRef.current.chart) {
-      chartRef.current.chart.destroy();
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
     }
-    
-    // Create new chart with modern colors
-    chartRef.current.chart = new Chart(ctx, {
+
+    chartInstanceRef.current = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: stats.stats.map(item => item._id.replace('_', ' ')),

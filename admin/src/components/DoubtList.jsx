@@ -19,7 +19,7 @@ const DoubtList = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null); // Clear previous errors
+      setError(null);
       const token = localStorage.getItem('adminToken');
 
       if (!token) {
@@ -43,7 +43,6 @@ const DoubtList = () => {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
-        config: err.config,
       });
 
       let errorMessage = 'Failed to fetch data. Please try again later.';
@@ -51,7 +50,7 @@ const DoubtList = () => {
         if (err.response.status === 401) {
           errorMessage = 'Session expired. Please log in again.';
           localStorage.removeItem('adminToken');
-          navigate('/login');
+          navigate('/admin/login');
         } else if (err.response.status === 500) {
           errorMessage = err.response.data?.message || 'Server error occurred. Please contact support.';
         } else {
@@ -70,25 +69,18 @@ const DoubtList = () => {
   // Set up polling for updates
   useEffect(() => {
     fetchData();
-
-    // Refresh data every 30 seconds
     const interval = setInterval(fetchData, 30000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [navigate]);
 
   // Apply filters
   useEffect(() => {
     let result = doubts;
 
-    // Apply status filter
     if (statusFilter !== 'all') {
       result = result.filter((doubt) => doubt.status === statusFilter);
     }
 
-    // Apply search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(
@@ -113,7 +105,6 @@ const DoubtList = () => {
       );
 
       if (response.data.success) {
-        // Update local state
         const updatedDoubts = doubts.map((doubt) =>
           doubt._id === doubtId ? response.data.data : doubt
         );

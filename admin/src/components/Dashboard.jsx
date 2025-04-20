@@ -14,22 +14,21 @@ const Dashboard = ({ onLogout }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check admin authentication
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
       return;
     }
 
-    // Fetch dashboard stats when component mounts
     fetchDashboardStats();
   }, [navigate]);
 
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem('adminToken');
-      
+
       const response = await axios.get(
         `${import.meta.env.VITE_API_BASE_URL}/admin/dashboard-stats`,
         {
@@ -48,18 +47,20 @@ const Dashboard = ({ onLogout }) => {
         setStats(response.data.stats);
       }
     } catch (error) {
-      if (error.response?.status === 401 && typeof onLogout === 'function') {
-        onLogout();
-        navigate('/login');
+      console.error('Error fetching dashboard stats:', error);
+      if (error.response?.status === 401) {
+        if (typeof onLogout === 'function') {
+          onLogout();
+        }
+        localStorage.removeItem('adminToken');
+        navigate('/admin/login');
       }
       setError(error.response?.data?.message || 'Failed to load dashboard statistics');
-      console.error('Error fetching dashboard stats:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // StatCard component with modern design
   const StatCard = ({ title, value, icon: Icon, trend, bgColor = "bg-white", textColor = "text-indigo-600" }) => (
     <div className={`
       ${bgColor} 
@@ -94,7 +95,6 @@ const Dashboard = ({ onLogout }) => {
     </div>
   );
 
-  // Loading state with skeleton loader
   if (loading && !stats) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -112,7 +112,6 @@ const Dashboard = ({ onLogout }) => {
     );
   }
 
-  // Error state
   if (error && !stats) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -121,7 +120,7 @@ const Dashboard = ({ onLogout }) => {
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Something went wrong</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={fetchDashboardStats}
             className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center"
           >
             <TrendingUp className="mr-2 h-5 w-5" /> Retry
@@ -133,7 +132,6 @@ const Dashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
           <div>
@@ -145,6 +143,9 @@ const Dashboard = ({ onLogout }) => {
           <button 
             onClick={() => {
               localStorage.removeItem('adminToken');
+              if (typeof onLogout === 'function') {
+                onLogout();
+              }
               navigate('/admin/login');
             }}
             className="text-red-600 hover:text-red-800 font-medium flex items-center"
@@ -154,7 +155,6 @@ const Dashboard = ({ onLogout }) => {
         </div>
       </header>
 
-      {/* Quick Stats */}
       {stats && (
         <div className="bg-gray-50 py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -185,9 +185,7 @@ const Dashboard = ({ onLogout }) => {
         </div>
       )}
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Tabs */}
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">
             <button
@@ -205,7 +203,6 @@ const Dashboard = ({ onLogout }) => {
           </nav>
         </div>
 
-        {/* Content */}
         {activeTab === 'doubts' ? <DoubtList /> : <StatsPanel />}
       </main>
     </div>
