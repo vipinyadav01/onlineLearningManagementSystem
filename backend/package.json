@@ -4,10 +4,9 @@
   "description": "Serverless API for Vercel deployment",
   "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "node index.js",
-    "build": "vercel build"
-
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "server": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.8.4",
@@ -25,8 +24,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
-  },
-  "engines": {
-    "node": "22.x"
   }
 }
