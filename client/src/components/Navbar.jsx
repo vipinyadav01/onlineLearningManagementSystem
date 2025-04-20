@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { User, Home, Clock, Book, LogIn, LogOut, ChevronDown } from 'lucide-react';
 import axios from 'axios';
@@ -10,6 +10,7 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const profileRef = useRef(null);
 
   // Navigation items configuration
   const navItems = [
@@ -104,7 +105,7 @@ const Navbar = () => {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (isProfileOpen) {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
       }
     };
@@ -113,53 +114,46 @@ const Navbar = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isProfileOpen]);
+  }, []);
 
   // Profile dropdown menu with glass morphism effect
   const ProfileDropdown = () => (
-    <>
-      <div 
-        className="fixed inset-0 z-40 bg-transparent" 
-        onClick={() => setIsProfileOpen(false)}
-      />
-      
-      <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden z-50 border border-slate-700/50">
-        <div className="p-4 border-b border-slate-700/50">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 p-0.5">
-              <img
-                src={user?.profilePic || 'https://via.placeholder.com/150'}
-                alt="Profile"
-                className="w-full h-full rounded-full object-cover"
-              />
-            </div>
-            <div>
-              <p className="text-white font-medium">{user?.name}</p>
-              <p className="text-sm text-slate-300 truncate">{user?.email}</p>
-            </div>
+    <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden z-50 border border-slate-700/50">
+      <div className="p-4 border-b border-slate-700/50">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 p-0.5">
+            <img
+              src={user?.profilePic || 'https://via.placeholder.com/150'}
+              alt="Profile"
+              className="w-full h-full rounded-full object-cover"
+            />
+          </div>
+          <div>
+            <p className="text-white font-medium">{user?.name}</p>
+            <p className="text-sm text-slate-300 truncate">{user?.email}</p>
           </div>
         </div>
-        <div className="py-1">
-          <NavLink
-            to="/profile"
-            className="block px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 flex items-center transition-all"
-            onClick={() => setIsProfileOpen(false)}
-          >
-            <User className="mr-3 h-4 w-4 text-teal-400" /> 
-            <span>Your Profile</span>
-          </NavLink>
-        </div>
-        <div className="py-1 border-t border-slate-700/50">
-          <button
-            onClick={handleLogout}
-            className="w-full text-left block px-4 py-3 text-sm text-red-400 hover:bg-slate-700/50 flex items-center transition-all"
-          >
-            <LogOut className="mr-3 h-4 w-4" /> 
-            <span>Sign Out</span>
-          </button>
-        </div>
       </div>
-    </>
+      <div className="py-1">
+        <NavLink
+          to="/profile"
+          className="block px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 flex items-center transition-all"
+          onClick={() => setIsProfileOpen(false)}
+        >
+          <User className="mr-3 h-4 w-4 text-teal-400" /> 
+          <span>Your Profile</span>
+        </NavLink>
+      </div>
+      <div className="py-1 border-t border-slate-700/50">
+        <button
+          onClick={handleLogout}
+          className="w-full text-left block px-4 py-3 text-sm text-red-400 hover:bg-slate-700/50 flex items-center transition-all"
+        >
+          <LogOut className="mr-3 h-4 w-4" /> 
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
   );
 
   // Desktop Navigation Item Component
@@ -253,7 +247,7 @@ const Navbar = () => {
             {/* Auth Section - Desktop */}
             <div className="hidden md:block">
               {isLoggedIn && user ? (
-                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <div className="relative" ref={profileRef}>
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center gap-3 group bg-slate-800/60 hover:bg-slate-700/60 px-3 py-1.5 rounded-lg transition-all border border-slate-700/50"
