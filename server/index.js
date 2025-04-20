@@ -25,8 +25,8 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/doubts', require('./routes/doubtRoutes')); 
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to the API' });
-});
+  res.json({ message: 'Welcome to the API server of TechBits-Academy ' });
+   });
 
 // MongoDB connection
 mongoose
