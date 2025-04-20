@@ -51,3 +51,4 @@ eslintcache
 
 # TypeScript
 *.tsbuildinfo
+.vercel
