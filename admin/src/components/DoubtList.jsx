@@ -297,7 +297,7 @@ const DoubtList = () => {
                   <p className="text-gray-600">{selectedDoubt.description}</p>
                 </div>
 
-                {selectedDoubt.attachments?.length >  Monopoly 0 && (
+                {selectedDoubt.attachments?.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-700 mb-2">Attachments:</h4>
                     <div className="flex flex-wrap gap-2">

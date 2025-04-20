@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../uploads');
+const uploadDir = path.join(__dirname, '../Uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
 // File filter for allowed types
@@ -39,7 +39,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter
+  fileFilter,
 });
 
 // Create a new doubt
@@ -60,10 +60,10 @@ router.post('/', authenticate, upload.array('attachments', 5), async (req, res) 
     }
 
     // Process attachments
-    const attachments = req.files?.map(file => ({
+    const attachments = req.files?.map((file) => ({
       filename: file.originalname,
-      url: `/uploads/${file.filename}`,
-      mimetype: file.mimetype
+      url: `/Uploads/${file.filename}`,
+      mimetype: file.mimetype,
     })) || [];
 
     const doubt = new Doubt({
@@ -72,13 +72,13 @@ router.post('/', authenticate, upload.array('attachments', 5), async (req, res) 
       order: orderId,
       user: userId,
       attachments,
-      status: 'pending'
+      status: 'pending',
     });
 
     await doubt.save();
     res.status(201).json({ success: true, data: doubt });
   } catch (error) {
-    console.error('Error creating doubt:', error);
+    console.error('Error creating doubt:', { message: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
@@ -86,48 +86,78 @@ router.post('/', authenticate, upload.array('attachments', 5), async (req, res) 
 // Get user's doubts
 router.get('/my-doubts', authenticate, async (req, res) => {
   try {
+    console.log('Fetching doubts for user:', req.user.id);
     const doubts = await Doubt.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .populate('order', 'orderNumber productName')
       .select('title description status createdAt order attachments');
     res.json({ success: true, data: doubts });
   } catch (error) {
-    console.error('Error fetching doubts:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching doubts:', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
 // Admin: Get all doubts
 router.get('/admin-doubt', authenticate, isAdmin, async (req, res) => {
   try {
+    console.log('Fetching admin doubts with query:', req.query);
     const { status } = req.query;
     const query = status ? { status } : {};
 
     const doubts = await Doubt.find(query)
       .sort({ createdAt: -1 })
-      .populate('user', 'name email')
-      .populate('order', 'orderNumber productName')
-      .select('title description status createdAt user order attachments');
-    res.json({ success: true, data: doubts });
+      .populate([
+        { path: 'user', select: 'name email', options: { lean: true } },
+        { path: 'order', select: 'orderNumber productName', options: { lean: true } },
+      ])
+      .lean();
+
+    // Clean up null references
+    const cleanedDoubts = doubts.map((doubt) => ({
+      ...doubt,
+      user: doubt.user || { name: 'Unknown', email: 'N/A' },
+      order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
+    }));
+
+    console.log('Doubts fetched successfully:', cleanedDoubts.length);
+    res.json({ success: true, data: cleanedDoubts });
   } catch (error) {
-    console.error('Error fetching doubts:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching doubts:', {
+      message: error.message,
+      stack: error.stack,
+      query: req.query,
+    });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
 // Admin: Get single doubt
 router.get('/admin/:id', authenticate, isAdmin, async (req, res) => {
   try {
+    console.log('Fetching doubt with ID:', req.params.id);
     const doubt = await Doubt.findById(req.params.id)
-      .populate('user', 'name email')
-      .populate('order', 'orderNumber productName');
+      .populate([
+        { path: 'user', select: 'name email', options: { lean: true } },
+        { path: 'order', select: 'orderNumber productName', options: { lean: true } },
+      ])
+      .lean();
+
     if (!doubt) {
       return res.status(404).json({ success: false, message: 'Doubt not found' });
     }
-    res.json({ success: true, data: doubt });
+
+    // Clean up null references
+    const cleanedDoubt = {
+      ...doubt,
+      user: doubt.user || { name: 'Unknown', email: 'N/A' },
+      order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
+    };
+
+    res.json({ success: true, data: cleanedDoubt });
   } catch (error) {
-    console.error('Error fetching doubt:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching doubt:', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
@@ -141,42 +171,59 @@ router.put('/admin/:id', authenticate, isAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Status is required' });
     }
 
+    console.log('Updating doubt:', { id: req.params.id, status, response });
     const doubt = await Doubt.findByIdAndUpdate(
       req.params.id,
       {
         status,
         response,
-        resolvedAt: status === 'resolved' ? Date.now() : null
+        resolvedAt: status === 'resolved' ? Date.now() : null,
       },
       { new: true }
-    ).populate('user', 'name email');
+    )
+      .populate([
+        { path: 'user', select: 'name email', options: { lean: true } },
+        { path: 'order', select: 'orderNumber productName', options: { lean: true } },
+      ])
+      .lean();
+
     if (!doubt) {
       return res.status(404).json({ success: false, message: 'Doubt not found' });
     }
-    res.json({ success: true, data: doubt });
+
+    // Clean up null references
+    const cleanedDoubt = {
+      ...doubt,
+      user: doubt.user || { name: 'Unknown', email: 'N/A' },
+      order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
+    };
+
+    res.json({ success: true, data: cleanedDoubt });
   } catch (error) {
-    console.error('Error updating doubt:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error updating doubt:', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
 // Admin: Get doubt statistics
 router.get('/admin-stats', authenticate, isAdmin, async (req, res) => {
   try {
+    console.log('Fetching admin doubt stats');
     const [stats, total, resolved, pending] = await Promise.all([
       Doubt.aggregate([
         {
           $group: {
             _id: '$status',
-            count: { $sum: 1 }
-          }
-        }
+            count: { $sum: 1 },
+          },
+        },
       ]),
       Doubt.countDocuments(),
       Doubt.countDocuments({ status: 'resolved' }),
-      Doubt.countDocuments({ status: 'pending' })
+      Doubt.countDocuments({ status: 'pending' }),
     ]);
 
+    console.log('Stats fetched:', { stats, total, resolved, pending });
     res.json({
       success: true,
       data: {
@@ -184,12 +231,15 @@ router.get('/admin-stats', authenticate, isAdmin, async (req, res) => {
         total,
         resolved,
         pending,
-        resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0
-      }
+        resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
+      },
     });
   } catch (error) {
-    console.error('Error fetching doubt stats:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching doubt stats:', {
+      message: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
