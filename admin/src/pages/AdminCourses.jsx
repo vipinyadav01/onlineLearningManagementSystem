@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Book, Camera, Plus } from 'lucide-react';
+import { Book, Camera, Plus, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
 const AdminCourses = () => {
@@ -113,25 +113,25 @@ const AdminCourses = () => {
           <>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Title*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title*</label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   required
                   disabled={loading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Category*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category*</label>
                 <input
                   type="text"
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   required
                   disabled={loading}
                 />
@@ -139,12 +139,12 @@ const AdminCourses = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Description*</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description*</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 rows="4"
                 required
                 disabled={loading}
@@ -153,12 +153,12 @@ const AdminCourses = () => {
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Level</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
                 <select
                   name="level"
                   value={formData.level}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={loading}
                 >
                   <option value="">Select Level</option>
@@ -169,13 +169,13 @@ const AdminCourses = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Duration</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
                 <input
                   type="text"
                   name="duration"
                   value={formData.duration}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="e.g. 8 hours"
                   disabled={loading}
                 />
@@ -189,7 +189,7 @@ const AdminCourses = () => {
                   name="isBestseller"
                   checked={formData.isBestseller}
                   onChange={handleChange}
-                  className="h-5 w-5 border-gray-300 rounded focus:ring-blue-500 accent-blue-500"
+                  className="h-5 w-5 border-gray-300 rounded focus:ring-indigo-500 accent-indigo-500"
                   disabled={loading}
                 />
                 <span className="text-gray-800 text-lg">Bestseller</span>
@@ -200,7 +200,7 @@ const AdminCourses = () => {
                   name="isNew"
                   checked={formData.isNew}
                   onChange={handleChange}
-                  className="h-5 w-5 border-gray-300 rounded focus:ring-blue-500 accent-blue-500"
+                  className="h-5 w-5 border-gray-300 rounded focus:ring-indigo-500 accent-indigo-500"
                   disabled={loading}
                 />
                 <span className="text-gray-800 text-lg">New</span>
@@ -212,36 +212,36 @@ const AdminCourses = () => {
         return (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Instructor Name*</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Instructor Name*</label>
               <input
                 type="text"
                 name="instructor"
                 value={formData.instructor}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 required
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Instructor Title</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Instructor Title</label>
               <input
                 type="text"
                 name="instructorTitle"
                 value={formData.instructorTitle}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="e.g. Senior Developer"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Instructor Bio</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Instructor Bio</label>
               <textarea
                 name="instructorBio"
                 value={formData.instructorBio}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 rows="4"
                 disabled={loading}
               />
@@ -253,13 +253,13 @@ const AdminCourses = () => {
           <>
             <div className="grid md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Price ($)*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price ($)*</label>
                 <input
                   type="number"
                   name="price"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   required
                   disabled={loading}
                   min="0"
@@ -267,26 +267,26 @@ const AdminCourses = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Original Price ($)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Original Price ($)</label>
                 <input
                   type="number"
                   name="originalPrice"
                   value={formData.originalPrice}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={loading}
                   min="0"
                   step="0.01"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Discount (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
                 <input
                   type="number"
                   name="discount"
                   value={formData.discount}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={loading}
                   min="0"
                   max="100"
@@ -295,13 +295,13 @@ const AdminCourses = () => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Last Updated</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Last Updated</label>
               <input
                 type="date"
                 name="lastUpdated"
                 value={formData.lastUpdated}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={loading}
               />
             </div>
@@ -311,48 +311,48 @@ const AdminCourses = () => {
         return (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">What You'll Learn (comma-separated)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">What You'll Learn (comma-separated)</label>
               <textarea
                 name="whatYouWillLearn"
                 value={formData.whatYouWillLearn}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 rows="3"
                 placeholder="e.g. React basics, State management, API integration"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Prerequisites (comma-separated)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Prerequisites (comma-separated)</label>
               <textarea
                 name="prerequisites"
                 value={formData.prerequisites}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 rows="3"
                 placeholder="e.g. Basic HTML, CSS knowledge, JavaScript fundamentals"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Tags (comma-separated)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
               <input
                 type="text"
                 name="tags"
                 value={formData.tags}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="e.g. development, programming, web"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Curriculum (JSON format)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Curriculum (JSON format)</label>
               <textarea
                 name="curriculum"
                 value={formData.curriculum}
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-black focus:outline-none focus:border-2 focus:border-blue-500 font-mono"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono"
                 rows="6"
                 placeholder='[{"section": "Introduction", "lectures": 3, "duration": "1 hour", "content": [{"title": "Welcome", "duration": "10:00", "isFree": true}]}]'
                 disabled={loading}
@@ -363,8 +363,8 @@ const AdminCourses = () => {
       case 'media':
         return (
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">Course Image</label>
-            <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-all">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Course Image</label>
+            <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all">
               <input
                 type="file"
                 name="image"
@@ -376,18 +376,18 @@ const AdminCourses = () => {
               {preview ? (
                 <div className="flex flex-col items-center">
                   <img
-                    src={preview}
+                    src={preview || "/placeholder.svg"}
                     alt="Preview"
                     className="w-48 h-48 object-cover rounded-lg"
                   />
                   <p className="mt-4 text-gray-800 flex items-center">
-                    <Camera className="w-5 h-5 mr-2 text-blue-500" />
+                    <Camera className="w-5 h-5 mr-2 text-indigo-500" />
                     Click to change image
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center text-gray-800">
-                  <Camera className="w-16 h-16 mb-4 text-blue-500" />
+                  <Camera className="w-16 h-16 mb-4 text-indigo-500" />
                   <p className="text-xl font-medium">Upload Course Image</p>
                   <p className="text-sm mt-2 text-gray-600">Click or drag and drop an image file</p>
                 </div>
@@ -401,11 +401,11 @@ const AdminCourses = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black p-4 md:p-8">
-      <div className="max-w-5xl mx-auto border border-gray-200 rounded-xl p-6 md:p-8 shadow-md">
+    <div className="min-h-screen bg-gray-50 text-gray-900 p-4 md:p-8">
+      <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl p-6 md:p-8 shadow-md">
         <div className="flex items-center mb-8">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 text-white p-3 rounded-full">
+            <div className="bg-indigo-600 text-white p-3 rounded-full">
               <Book className="w-8 h-8" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">
@@ -415,7 +415,8 @@ const AdminCourses = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-white border-2 border-red-500 rounded-xl text-red-600 text-sm animate-pulse">
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
             {error}
           </div>
         )}
@@ -428,8 +429,8 @@ const AdminCourses = () => {
                   onClick={() => setCurrentSection(section.id)}
                   className={`px-4 py-2 rounded-full transition-all ${
                     currentSection === section.id
-                      ? 'bg-blue-600 text-white font-medium'
-                      : 'bg-white text-gray-800 border border-gray-300 hover:bg-blue-50 hover:border-blue-300'
+                      ? 'bg-indigo-600 text-white font-medium'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:bg-indigo-50 hover:border-indigo-300'
                   }`}
                 >
                   {section.label}
@@ -450,7 +451,7 @@ const AdminCourses = () => {
                   const currentIndex = sections.findIndex(s => s.id === currentSection);
                   setCurrentSection(sections[currentIndex - 1].id);
                 }}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 Previous
               </button>
@@ -464,7 +465,7 @@ const AdminCourses = () => {
                     const currentIndex = sections.findIndex(s => s.id === currentSection);
                     setCurrentSection(sections[currentIndex + 1].id);
                   }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
                 >
                   Next
                 </button>
@@ -472,8 +473,8 @@ const AdminCourses = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`px-8 py-3 bg-red-600 text-white rounded-lg font-medium transition-all ${
-                    loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-700'
+                  className={`px-8 py-3 bg-indigo-600 text-white rounded-xl font-medium transition-all ${
+                    loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">

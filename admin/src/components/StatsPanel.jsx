@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaChartBar, FaChartPie, FaChartLine } from 'react-icons/fa';
+import { BarChart2, PieChart, LineChart, RefreshCw, AlertCircle } from 'lucide-react';
 import Chart from 'chart.js/auto';
 
 const StatsPanel = () => {
@@ -52,7 +52,7 @@ const StatsPanel = () => {
       chartRef.current.chart.destroy();
     }
     
-    // Create new chart
+    // Create new chart with modern colors
     chartRef.current.chart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -61,16 +61,17 @@ const StatsPanel = () => {
           label: 'Number of Doubts',
           data: stats.stats.map(item => item.count),
           backgroundColor: [
-            'rgba(255, 206, 86, 0.7)',
-            'rgba(54, 162, 235, 0.7)',
-            'rgba(75, 192, 192, 0.7)'
+            'rgba(245, 158, 11, 0.7)', // amber for pending
+            'rgba(79, 70, 229, 0.7)',  // indigo for in_progress
+            'rgba(16, 185, 129, 0.7)'  // emerald for resolved
           ],
           borderColor: [
-            'rgba(255, 206, 86, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(75, 192, 192, 1)'
+            'rgba(245, 158, 11, 1)',
+            'rgba(79, 70, 229, 1)',
+            'rgba(16, 185, 129, 1)'
           ],
-          borderWidth: 1
+          borderWidth: 1,
+          borderRadius: 8
         }]
       },
       options: {
@@ -81,7 +82,11 @@ const StatsPanel = () => {
           },
           title: {
             display: true,
-            text: 'Doubt Status Distribution'
+            text: 'Doubt Status Distribution',
+            font: {
+              size: 16,
+              weight: 'bold'
+            }
           }
         },
         scales: {
@@ -99,15 +104,25 @@ const StatsPanel = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 text-red-700 p-4 rounded-md">
-        <p>{error}</p>
+      <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-6 rounded-xl shadow-sm">
+        <div className="flex items-center">
+          <AlertCircle className="h-6 w-6 mr-3 text-red-500" />
+          <p className="font-medium">{error}</p>
+        </div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </button>
       </div>
     );
   }
@@ -115,13 +130,13 @@ const StatsPanel = () => {
   return (
     <div className="space-y-6">
       {/* Time Range Selector */}
-      <div className="bg-white p-4 rounded-lg shadow">
+      <div className="bg-white p-6 rounded-xl shadow-md">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Statistics Overview</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Statistics Overview</h2>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
           >
             <option value="week">Last 7 Days</option>
             <option value="month">Last 30 Days</option>
@@ -134,40 +149,40 @@ const StatsPanel = () => {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                <FaChartBar size={24} />
+              <div className="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                <BarChart2 size={24} />
               </div>
               <div>
                 <h3 className="text-gray-500 text-sm font-medium">Total Doubts</h3>
-                <p className="text-3xl font-bold">{stats.total}</p>
+                <p className="text-3xl font-bold text-gray-800 mt-1">{stats.total}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                <FaChartPie size={24} />
+              <div className="p-3 rounded-full bg-emerald-100 text-emerald-600 mr-4">
+                <PieChart size={24} />
               </div>
               <div>
                 <h3 className="text-gray-500 text-sm font-medium">Resolved</h3>
-                <p className="text-3xl font-bold text-green-600">{stats.resolved}</p>
-                <p className="text-sm text-gray-500">{stats.resolutionRate}% resolution rate</p>
+                <p className="text-3xl font-bold text-emerald-600 mt-1">{stats.resolved}</p>
+                <p className="text-sm text-gray-500 mt-1">{stats.resolutionRate}% resolution rate</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-                <FaChartLine size={24} />
+              <div className="p-3 rounded-full bg-amber-100 text-amber-600 mr-4">
+                <LineChart size={24} />
               </div>
               <div>
                 <h3 className="text-gray-500 text-sm font-medium">Pending</h3>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
-                <p className="text-sm text-gray-500">{Math.round((stats.pending / stats.total) * 100)}% of total</p>
+                <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pending}</p>
+                <p className="text-sm text-gray-500 mt-1">{Math.round((stats.pending / stats.total) * 100)}% of total</p>
               </div>
             </div>
           </div>
@@ -175,27 +190,27 @@ const StatsPanel = () => {
       )}
 
       {/* Chart */}
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white p-6 rounded-xl shadow-md">
         <canvas ref={chartRef} height="300"></canvas>
       </div>
 
       {/* Status Distribution */}
       {stats && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium mb-4">Status Distribution</h3>
-          <div className="space-y-4">
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h3 className="text-lg font-semibold text-gray-800 mb-6">Status Distribution</h3>
+          <div className="space-y-6">
             {stats.stats.map((item) => (
-              <div key={item._id} className="space-y-1">
+              <div key={item._id} className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="font-medium capitalize">{item._id.replace('_', ' ')}</span>
-                  <span>{item.count} ({(item.count / stats.total * 100).toFixed(1)}%)</span>
+                  <span className="font-medium capitalize text-gray-700">{item._id.replace('_', ' ')}</span>
+                  <span className="font-medium">{item.count} ({(item.count / stats.total * 100).toFixed(1)}%)</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="w-full bg-gray-100 rounded-full h-3">
                   <div 
-                    className={`h-2.5 rounded-full ${
-                      item._id === 'pending' ? 'bg-yellow-400' :
-                      item._id === 'in_progress' ? 'bg-blue-500' :
-                      'bg-green-500'
+                    className={`h-3 rounded-full ${
+                      item._id === 'pending' ? 'bg-amber-500' :
+                      item._id === 'in_progress' ? 'bg-indigo-500' :
+                      'bg-emerald-500'
                     }`}
                     style={{ width: `${(item.count / stats.total) * 100}%` }}
                   ></div>

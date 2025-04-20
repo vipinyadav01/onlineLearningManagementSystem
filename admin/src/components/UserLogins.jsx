@@ -1,25 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { 
-  UserCircle2, 
-  Mail, 
-  Calendar, 
-  Activity, 
-  RefreshCcw,
-  Search,
-  Filter,
-  SortDesc,
-  SortAsc,
-  ChevronDown,
-  ChevronUp,
-  Bell,
-  User,
-  LogOut,
-  Settings,
-  HelpCircle,
-  ArrowLeft
-} from 'lucide-react';
+import { UserCircle2, Mail, Calendar, AlertCircle, RefreshCw, Search, Filter, SortDesc, SortAsc, ChevronDown, ChevronUp, Bell, User, LogOut, Settings, HelpCircle, ArrowLeft } from 'lucide-react';
 
 const UserLogins = ({ onLogout }) => {
   const [users, setUsers] = useState([]);
@@ -107,16 +89,16 @@ const UserLogins = ({ onLogout }) => {
   // Loading state with improved skeleton loader
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse space-y-6">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-              <div className="h-8 md:h-10 bg-gray-300 rounded w-full md:w-1/3"></div>
-              <div className="h-10 bg-gray-300 rounded w-full md:w-1/3"></div>
+              <div className="h-8 md:h-10 bg-gray-200 rounded-xl w-full md:w-1/3"></div>
+              <div className="h-10 bg-gray-200 rounded-xl w-full md:w-1/3"></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((item) => (
-                <div key={item} className="bg-gray-300 h-24 md:h-32 rounded-xl"></div>
+                <div key={item} className="bg-gray-200 h-24 md:h-32 rounded-xl"></div>
               ))}
             </div>
           </div>
@@ -128,17 +110,17 @@ const UserLogins = ({ onLogout }) => {
   // Error state with improved UI
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
-          <Activity className="w-12 h-12 md:w-16 md:h-16 text-red-500 mx-auto mb-4" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 md:p-8 rounded-xl shadow-xl text-center max-w-md w-full">
+          <AlertCircle className="w-12 h-12 md:w-16 md:h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <button 
               onClick={fetchUsers}
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
+              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
             >
-              <RefreshCcw className="mr-2 w-4 h-4" /> Retry
+              <RefreshCw className="mr-2 w-4 h-4" /> Retry
             </button>
             <button 
               onClick={() => navigate('/dashboard')}
@@ -153,15 +135,15 @@ const UserLogins = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header area */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
-              <UserCircle2 className="mr-2 w-6 h-6 md:w-8 md:h-8 text-blue-500" />
+              <UserCircle2 className="mr-2 w-6 h-6 md:w-8 md:h-8 text-indigo-600" />
               User Logins
-              <span className="ml-2 text-sm md:text-base bg-blue-100 text-blue-700 py-1 px-2 rounded-full">
+              <span className="ml-2 text-sm md:text-base bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full">
                 {filteredUsers.length} of {users.length}
               </span>
             </h1>
@@ -169,15 +151,15 @@ const UserLogins = ({ onLogout }) => {
             <div className="flex flex-col sm:flex-row gap-2">
               <button 
                 onClick={() => navigate('/dashboard')}
-                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center"
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
               >
                 <ArrowLeft className="mr-2 w-4 h-4" /> Back
               </button>
               <button 
                 onClick={fetchUsers}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
               >
-                <RefreshCcw className="mr-2 w-4 h-4" /> Refresh
+                <RefreshCw className="mr-2 w-4 h-4" /> Refresh
               </button>
             </div>
           </div>
@@ -186,23 +168,23 @@ const UserLogins = ({ onLogout }) => {
           <div className="flex flex-col md:flex-row gap-4 mb-2">
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+                <Search className="h-5 w-5 text-indigo-400" />
               </div>
               <input
                 type="text"
                 placeholder="Search by email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             
             <div className="relative">
               <button
                 onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"
               >
-                <Filter className="h-5 w-5 text-gray-500" />
+                <Filter className="h-5 w-5 text-indigo-500" />
                 <span>{selectedFilter}</span>
                 {isFilterMenuOpen ? (
                   <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -212,7 +194,7 @@ const UserLogins = ({ onLogout }) => {
               </button>
               
               {isFilterMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10">
                   <div className="py-1">
                     {['All', 'Recent', 'Oldest'].map((filter) => (
                       <button
@@ -222,7 +204,7 @@ const UserLogins = ({ onLogout }) => {
                           setIsFilterMenuOpen(false);
                         }}
                         className={`block w-full text-left px-4 py-2 text-sm ${
-                          selectedFilter === filter ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                          selectedFilter === filter ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
                         {filter}
@@ -235,12 +217,12 @@ const UserLogins = ({ onLogout }) => {
             
             <button
               onClick={() => handleSort('createdAt')}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50"
             >
               {sortConfig.direction === 'asc' ? (
-                <SortAsc className="h-5 w-5 text-gray-500" />
+                <SortAsc className="h-5 w-5 text-indigo-500" />
               ) : (
-                <SortDesc className="h-5 w-5 text-gray-500" />
+                <SortDesc className="h-5 w-5 text-indigo-500" />
               )}
               <span>Sort by Date</span>
             </button>
@@ -260,8 +242,8 @@ const UserLogins = ({ onLogout }) => {
                   className="p-4 cursor-pointer"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="bg-blue-100 rounded-full p-3">
-                      <User className="w-8 h-8 text-blue-500" />
+                    <div className="bg-indigo-100 rounded-full p-3">
+                      <User className="w-8 h-8 text-indigo-600" />
                     </div>
                     <div className="flex-grow">
                       <div className="flex justify-between items-start">
@@ -274,7 +256,7 @@ const UserLogins = ({ onLogout }) => {
                             {new Date(user.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <span className="bg-green-50 text-green-600 px-2 py-1 rounded-full text-xs flex items-center">
+                        <span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full text-xs flex items-center">
                           <Bell className="w-3 h-3 mr-1" />
                           Active
                         </span>
@@ -296,10 +278,10 @@ const UserLogins = ({ onLogout }) => {
                       <span className="ml-2">{new Date(user.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-end gap-2 mt-4">
-                      <button className="p-2 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100">
+                      <button className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100">
                         <Settings className="w-4 h-4" />
                       </button>
-                      <button className="p-2 rounded-full bg-green-50 text-green-600 hover:bg-green-100">
+                      <button className="p-2 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
                         <HelpCircle className="w-4 h-4" />
                       </button>
                       <button className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100">
@@ -320,9 +302,9 @@ const UserLogins = ({ onLogout }) => {
                   setSearchTerm('');
                   setSelectedFilter('All');
                 }}
-                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center mx-auto"
+                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center mx-auto"
               >
-                <RefreshCcw className="mr-2 w-4 h-4" /> Reset Filters
+                <RefreshCw className="mr-2 w-4 h-4" /> Reset Filters
               </button>
             </div>
           )}
