@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  Star, Clock, Calendar, BarChart, Award, CheckCircle, Play,
+  Star, Clock,  BarChart, Award, CheckCircle, Play,
   Download, Share2, BookOpen, Users, ChevronDown, ChevronUp,
   Heart, Bookmark, MessageSquare, ThumbsUp, Edit2, Trash2
 } from 'lucide-react';
