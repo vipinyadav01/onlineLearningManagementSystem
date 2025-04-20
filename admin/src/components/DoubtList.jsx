@@ -13,35 +13,55 @@ const DoubtList = () => {
   const [selectedDoubt, setSelectedDoubt] = useState(null);
   const [responseText, setResponseText] = useState('');
   const [stats, setStats] = useState(null);
-  const [refreshInterval, setRefreshInterval] = useState(null);
   const navigate = useNavigate();
 
   // Fetch doubts and stats
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null); // Clear previous errors
       const token = localStorage.getItem('adminToken');
-      
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const [doubtsRes, statsRes] = await Promise.all([
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-doubt`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
-      
+
       setDoubts(doubtsRes.data.data);
       setFilteredDoubts(doubtsRes.data.data);
       setStats(statsRes.data.data);
-      setError(null);
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err.response?.data?.message || 'Failed to fetch data');
-      if (err.response?.status === 401) {
-        localStorage.removeItem('adminToken');
-        navigate('/login');
+      console.error('Error fetching data:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        config: err.config,
+      });
+
+      let errorMessage = 'Failed to fetch data. Please try again later.';
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Session expired. Please log in again.';
+          localStorage.removeItem('adminToken');
+          navigate('/login');
+        } else if (err.response.status === 500) {
+          errorMessage = err.response.data?.message || 'Server error occurred. Please contact support.';
+        } else {
+          errorMessage = err.response.data?.message || `Error: ${err.message}`;
+        }
+      } else if (err.request) {
+        errorMessage = 'No response from server. Check your network connection.';
       }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -50,40 +70,39 @@ const DoubtList = () => {
   // Set up polling for updates
   useEffect(() => {
     fetchData();
-    
+
     // Refresh data every 30 seconds
     const interval = setInterval(fetchData, 30000);
-    setRefreshInterval(interval);
-    
+
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
     };
   }, []);
 
   // Apply filters
   useEffect(() => {
     let result = doubts;
-    
+
     // Apply status filter
     if (statusFilter !== 'all') {
-      result = result.filter(doubt => doubt.status === statusFilter);
+      result = result.filter((doubt) => doubt.status === statusFilter);
     }
-    
+
     // Apply search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(doubt => 
-        doubt.title.toLowerCase().includes(term) || 
-        doubt.description.toLowerCase().includes(term) ||
-        (doubt.user?.name && doubt.user.name.toLowerCase().includes(term)) ||
-        (doubt.order?.orderNumber && doubt.order.orderNumber.toLowerCase().includes(term))
+      result = result.filter(
+        (doubt) =>
+          doubt.title.toLowerCase().includes(term) ||
+          doubt.description.toLowerCase().includes(term) ||
+          (doubt.user?.name && doubt.user.name.toLowerCase().includes(term)) ||
+          (doubt.order?.orderNumber && doubt.order.orderNumber.toLowerCase().includes(term))
       );
     }
-    
+
     setFilteredDoubts(result);
   }, [doubts, statusFilter, searchTerm]);
 
-  // Handle status update
   const handleStatusUpdate = async (doubtId, status) => {
     try {
       const token = localStorage.getItem('adminToken');
@@ -92,13 +111,13 @@ const DoubtList = () => {
         { status, response: responseText },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.success) {
         // Update local state
-        const updatedDoubts = doubts.map(doubt => 
+        const updatedDoubts = doubts.map((doubt) =>
           doubt._id === doubtId ? response.data.data : doubt
         );
-        
+
         setDoubts(updatedDoubts);
         setSelectedDoubt(null);
         setResponseText('');
@@ -124,7 +143,7 @@ const DoubtList = () => {
           <AlertCircle className="h-6 w-6 mr-3 text-red-500" />
           <p className="font-medium">{error}</p>
         </div>
-        <button 
+        <button
           onClick={fetchData}
           className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center"
         >
@@ -152,7 +171,7 @@ const DoubtList = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <Filter className="text-indigo-400 mr-2" />
@@ -167,7 +186,7 @@ const DoubtList = () => {
                 <option value="resolved">Resolved</option>
               </select>
             </div>
-            
+
             <button
               onClick={fetchData}
               className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm"
@@ -215,7 +234,7 @@ const DoubtList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDoubts.map(doubt => (
+              {filteredDoubts.map((doubt) => (
                 <tr key={doubt._id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{doubt.title}</div>
@@ -225,14 +244,14 @@ const DoubtList = () => {
                     <div className="text-sm text-gray-900">{doubt.user?.name}</div>
                     <div className="text-sm text-gray-500">{doubt.user?.email}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {doubt.order?.orderNumber || 'N/A'}
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{doubt.order?.orderNumber || 'N/A'}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    <span
+                      className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                       ${doubt.status === 'resolved' ? 'bg-emerald-100 text-emerald-800' : 
                         doubt.status === 'in_progress' ? 'bg-indigo-100 text-indigo-800' : 
-                        'bg-amber-100 text-amber-800'}`}>
+                        'bg-amber-100 text-amber-800'}`}
+                    >
                       {doubt.status.replace('_', ' ')}
                     </span>
                   </td>
@@ -271,22 +290,22 @@ const DoubtList = () => {
                   <XCircle className="h-6 w-6" />
                 </button>
               </div>
-              
+
               <div className="mt-6 space-y-6">
                 <div className="bg-gray-50 p-4 rounded-xl">
                   <h4 className="font-semibold text-gray-800 mb-2">Title: {selectedDoubt.title}</h4>
                   <p className="text-gray-600">{selectedDoubt.description}</p>
                 </div>
-                
-                {selectedDoubt.attachments?.length > 0 && (
+
+                {selectedDoubt.attachments?.length >  Monopoly 0 && (
                   <div>
                     <h4 className="font-medium text-gray-700 mb-2">Attachments:</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedDoubt.attachments.map((file, index) => (
-                        <a 
+                        <a
                           key={index}
-                          href={file.url} 
-                          target="_blank" 
+                          href={file.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors"
                         >
@@ -296,7 +315,7 @@ const DoubtList = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <div>
                   <label htmlFor="response" className="block text-sm font-medium text-gray-700 mb-2">
                     Your Response
@@ -310,7 +329,7 @@ const DoubtList = () => {
                     placeholder="Type your response here..."
                   />
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     onClick={() => handleStatusUpdate(selectedDoubt._id, 'pending')}
