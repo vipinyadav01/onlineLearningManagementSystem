@@ -14,18 +14,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Log API base URL (remove if not needed)
 console.log('API Base URL:', process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`);
 
 // Routes
 
-  app.use('api/auth', require('./routes/authRoutes'));
-  app.use('api/admin/courses', require('./routes/courseRoutes'));
-  app.use('api/admin', require('./routes/adminRoutes'));
-  app.use('api/payments', require('./routes/paymentRoutes'));
-  app.use('api/orders', require('./routes/orderRoutes'));
-  app.use('api/reviews', require('./routes/reviewRoutes'));
-  app.use('api/doubts', require('./routes/doubtRoutes')); 
+  app.use('/api/auth', require('./routes/authRoutes'));
+  app.use('/api/admin/courses', require('./routes/courseRoutes'));
+  app.use('/api/admin', require('./routes/adminRoutes'));
+  app.use('/api/payments', require('./routes/paymentRoutes'));
+  app.use('/api/orders', require('./routes/orderRoutes'));
+  app.use('/api/reviews', require('./routes/reviewRoutes'));
+  app.use('/api/doubts', require('./routes/doubtRoutes')); 
 
   app.get('/', (req, res) => {
     res.json({ message: 'Welcome to the API' });
