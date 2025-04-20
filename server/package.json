@@ -2,12 +2,12 @@
   "name": "server",
   "version": "1.0.0",
   "description": "A server application for handling API requests and managing data.",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "start": "node index.js",
     "build":"npm i",
-    "dev": "nodemon server.js"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
