@@ -19,13 +19,13 @@ console.log('API Base URL:', process.env.API_BASE_URL || `http://localhost:${pro
 
 // Routes
 
-  app.use('/auth', require('./routes/authRoutes'));
-  app.use('/admin/courses', require('./routes/courseRoutes'));
-  app.use('/admin', require('./routes/adminRoutes'));
-  app.use('/payments', require('./routes/paymentRoutes'));
-  app.use('/orders', require('./routes/orderRoutes'));
-  app.use('/reviews', require('./routes/reviewRoutes'));
-  app.use('/doubts', require('./routes/doubtRoutes')); 
+  app.use('api/auth', require('./routes/authRoutes'));
+  app.use('api/admin/courses', require('./routes/courseRoutes'));
+  app.use('api/admin', require('./routes/adminRoutes'));
+  app.use('api/payments', require('./routes/paymentRoutes'));
+  app.use('api/orders', require('./routes/orderRoutes'));
+  app.use('api/reviews', require('./routes/reviewRoutes'));
+  app.use('api/doubts', require('./routes/doubtRoutes')); 
 
   app.get('/', (req, res) => {
     res.json({ message: 'Welcome to the API' });
