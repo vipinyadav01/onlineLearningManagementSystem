@@ -18,7 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 console.log('API Base URL:', process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`);
 
 // Routes
-try {
+
   app.use('/api/auth', require('./routes/authRoutes'));
   app.use('/api/admin/courses', require('./routes/courseRoutes'));
   app.use('/api/admin', require('./routes/adminRoutes'));
@@ -26,10 +26,7 @@ try {
   app.use('/api/orders', require('./routes/orderRoutes'));
   app.use('/api/reviews', require('./routes/reviewRoutes'));
   app.use('/api/doubts', require('./routes/doubtRoutes')); 
-} catch (error) {
-  console.error('Error loading routes:', error);
-  process.exit(1);
-}
+
 
 // MongoDB connection
 mongoose
