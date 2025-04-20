@@ -43,15 +43,6 @@ mongoose
     process.exit(1);
   });
 
-// Error handling middleware
-app.use((err, _req, res, _next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ 
-    success: false, 
-    message: 'Server error', 
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined 
-  });
-});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
