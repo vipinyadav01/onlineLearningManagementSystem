@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Review = require('../models/Review');
+const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 
@@ -22,18 +23,27 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Get all reviews for a course
+// GET all reviews for a course (with user name & image)
 router.get('/:courseId', async (req, res) => {
   try {
-    const reviews = await Review.find({ courseId: req.params.courseId }).lean();
-    res.json({ success: true, reviews });
+    const reviews = await Review.find({ courseId: req.params.courseId })
+      .populate('userId', 'name profilePic')
+      .lean();
+
+    const formattedReviews = reviews.map(r => ({
+      ...r,
+      userName: r.userId.name,
+      userImage: r.userId.profilePic,
+    }));
+
+    res.json({ success: true, reviews: formattedReviews });
   } catch (err) {
     console.error('Error fetching reviews:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// Create a new review
+// CREATE a new review
 router.post(
   '/',
   authenticateToken,
@@ -52,13 +62,24 @@ router.post(
       const review = new Review({
         courseId: req.body.courseId,
         userId: req.user.id,
-        userName: req.user.name || 'Anonymous',
         rating: req.body.rating,
         comment: req.body.comment,
       });
 
       const newReview = await review.save();
-      res.status(201).json({ success: true, review: newReview });
+
+      // Fetch populated user data to return
+      const populatedReview = await Review.findById(newReview._id)
+        .populate('userId', 'name profilePic')
+        .lean();
+
+      const responseReview = {
+        ...populatedReview,
+        userName: populatedReview.userId.name,
+        userImage: populatedReview.userId.profilePic,
+      };
+
+      res.status(201).json({ success: true, review: responseReview });
     } catch (err) {
       if (err.code === 11000) {
         return res.status(400).json({
@@ -72,7 +93,7 @@ router.post(
   }
 );
 
-// Update a review
+// UPDATE a review
 router.put(
   '/:id',
   authenticateToken,
@@ -99,8 +120,15 @@ router.put(
         req.params.id,
         { $set: req.body },
         { new: true }
-      );
-      res.json({ success: true, review: updatedReview });
+      ).populate('userId', 'name profilePic').lean();
+
+      const responseReview = {
+        ...updatedReview,
+        userName: updatedReview.userId.name,
+        userImage: updatedReview.userId.profilePic,
+      };
+
+      res.json({ success: true, review: responseReview });
     } catch (err) {
       console.error('Error updating review:', err);
       res.status(400).json({ success: false, message: err.message });
@@ -108,7 +136,7 @@ router.put(
   }
 );
 
-// Delete a review
+// DELETE a review
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
@@ -127,7 +155,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Increment helpful count
+// INCREMENT helpful count
 router.post('/:id/helpful', authenticateToken, async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
@@ -137,7 +165,18 @@ router.post('/:id/helpful', authenticateToken, async (req, res) => {
 
     review.helpfulCount += 1;
     const updatedReview = await review.save();
-    res.json({ success: true, review: updatedReview });
+
+    const populated = await Review.findById(updatedReview._id)
+      .populate('userId', 'name profilePic')
+      .lean();
+
+    const responseReview = {
+      ...populated,
+      userName: populated.userId.name,
+      userImage: populated.userId.profilePic,
+    };
+
+    res.json({ success: true, review: responseReview });
   } catch (err) {
     console.error('Error incrementing helpful count:', err);
     res.status(500).json({ success: false, message: 'Server error' });

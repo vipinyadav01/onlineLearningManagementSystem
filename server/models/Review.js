@@ -11,11 +11,6 @@ const reviewSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  userName: {
-    type: String,
-    required: true,
-    trim: true,
-  },
   rating: {
     type: Number,
     required: true,
@@ -37,10 +32,8 @@ const reviewSchema = new mongoose.Schema({
   },
 });
 
-// Indexes for faster queries
 reviewSchema.index({ courseId: 1 });
-reviewSchema.index({ userId: 1, courseId: 1 }, { unique: true }); // Prevent multiple reviews by the same user for a course
+reviewSchema.index({ userId: 1, courseId: 1 }, { unique: true });
 
 const Review = mongoose.model('Review', reviewSchema);
-
 module.exports = Review;
