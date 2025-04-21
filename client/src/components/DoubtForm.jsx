@@ -67,6 +67,7 @@ const DoubtForm = () => {
           }
         }
       } catch (error) {
+        console.error('Auth error:', error);
         if (error.response?.status === 401 || error.response?.status === 404) {
           localStorage.removeItem('token');
           setAuthStatus('unauthenticated');
@@ -137,8 +138,19 @@ const DoubtForm = () => {
         });
       }
 
+      // Verify token validity before submission
+      try {
+        await axios.get(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+      } catch (authError) {
+        throw new Error('Authentication failed');
+      }
+
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/doubts/create`,
+        `${import.meta.env.VITE_API_BASE_URL}/doubt/create`,  // Updated endpoint
         formData,
         {
           headers: {
@@ -161,20 +173,21 @@ const DoubtForm = () => {
         if (fileInput) fileInput.value = '';
       }
     } catch (error) {
-      if (error.response?.status === 401 || error.response?.status === 404) {
+      console.error('Submit error:', error);
+      if (error.message === 'Authentication failed' || error.response?.status === 401) {
         setError('Session expired. Please log in again.');
         localStorage.removeItem('token');
         setAuthStatus('unauthenticated');
         setTimeout(() => navigate('/login'), 1500);
       } else {
-        setError(error.response?.data?.message || 'An error occurred. Please try again.');
+        setError(error.response?.data?.message || 'An error occurred while submitting your doubt. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Loading state
+  // Rest of the component remains the same...
   if (loading || authStatus === 'checking') {
     return (
       <div className="flex justify-center items-center h-screen bg-slate-900">
@@ -183,7 +196,6 @@ const DoubtForm = () => {
     );
   }
 
-  // Unauthenticated state
   if (authStatus === 'unauthenticated') {
     return (
       <div className="flex justify-center items-center min-h-[60vh] px-4">
