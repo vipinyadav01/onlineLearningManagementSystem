@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import instance from '../api/axios';
 import { Users, Clock, BookOpen, TrendingUp, AlertCircle, BarChart2, List } from 'lucide-react';
 import DoubtList from './DoubtList';
 import StatsPanel from './StatsPanel';
@@ -27,14 +27,8 @@ const Dashboard = ({ onLogout }) => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('adminToken');
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/admin/dashboard-stats`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await instance.get('/admin/dashboard-stats');
 
       if (response.data.success) {
         const hour = new Date().getHours();
@@ -48,13 +42,6 @@ const Dashboard = ({ onLogout }) => {
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      if (error.response?.status === 401) {
-        if (typeof onLogout === 'function') {
-          onLogout();
-        }
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-      }
       setError(error.response?.data?.message || 'Failed to load dashboard statistics');
     } finally {
       setLoading(false);
