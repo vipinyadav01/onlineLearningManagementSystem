@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import instance from "../axios";
 import { Search, Filter, RefreshCw, CheckCircle, XCircle, MessageCircle, Clock, AlertCircle } from 'lucide-react';
 
 const DoubtList = () => {
@@ -20,19 +20,10 @@ const DoubtList = () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('adminToken');
-
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
 
       const [doubtsRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-doubt`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        instance.get('/doubts/admin-doubt'),
+        instance.get('/doubts/admin-stats'),
       ]);
 
       setDoubts(doubtsRes.data.data);
@@ -47,11 +38,7 @@ const DoubtList = () => {
 
       let errorMessage = 'Failed to fetch data. Please try again later.';
       if (err.response) {
-        if (err.response.status === 401) {
-          errorMessage = 'Session expired. Please log in again.';
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-        } else if (err.response.status === 500) {
+        if (err.response.status === 500) {
           errorMessage = err.response.data?.message || 'Server error occurred. Please contact support.';
         } else {
           errorMessage = err.response.data?.message || `Error: ${err.message}`;
@@ -97,11 +84,9 @@ const DoubtList = () => {
 
   const handleStatusUpdate = async (doubtId, status) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL}/doubts/admin/${doubtId}`,
-        { status, response: responseText },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await instance.put(
+        `/doubts/admin/${doubtId}`,
+        { status, response: responseText }
       );
 
       if (response.data.success) {
