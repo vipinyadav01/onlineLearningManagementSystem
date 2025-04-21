@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import instance from "../axios";
+import instance from "../api/axios";
 import { Search, Filter, RefreshCw, CheckCircle, XCircle, MessageCircle, Clock, AlertCircle } from 'lucide-react';
 
 const DoubtList = () => {

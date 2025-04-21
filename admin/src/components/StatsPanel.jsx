@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import instance from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, PieChart, LineChart, RefreshCw, AlertCircle } from 'lucide-react';
 import Chart from 'chart.js/auto';
@@ -18,33 +18,18 @@ const StatsPanel = () => {
       try {
         setLoading(true);
         setError(null);
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats?timeRange=${timeRange}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
+        const response = await instance.get(`/doubts/admin-stats?timeRange=${timeRange}`);
         setStats(response.data.data);
       } catch (err) {
         console.error('Error fetching stats:', err);
-        let errorMessage = err.response?.data?.message || 'Failed to fetch statistics';
-        if (err.response?.status === 401) {
-          errorMessage = 'Session expired. Please log in again.';
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-        }
-        setError(errorMessage);
+        setError(err.response?.data?.message || 'Failed to fetch statistics');
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, [timeRange, navigate]);
+  }, [timeRange]);
 
   useEffect(() => {
     if (stats && chartRef.current) {
