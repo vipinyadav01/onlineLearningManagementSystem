@@ -70,10 +70,8 @@ app.use((err, req, res, next) => {
 module.exports = app;
 module.exports.handler = serverless(app);
 
-// Local server
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Server running locally on port ${PORT}`);
-  });
-}
+// Ensure server listens on a port in all environments
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
