@@ -1,9 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import instance from '../api/axios';
+import axios from 'axios';
 import { Users, Clock, BookOpen, TrendingUp, AlertCircle, BarChart2, List } from 'lucide-react';
 import DoubtList from './DoubtList';
 import StatsPanel from './StatsPanel';
+
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      return Promise.reject(new Error('No authentication token found'));
+    }
+    config.headers.Authorization = `Bearer ${token}`;
+    
+    if (config.data instanceof FormData) {
+      config.headers['Content-Type'] = 'multipart/form-data';
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+instance.interceptors.response.use(
+  (response) => {
+    if (response.data?.success) {
+      return response;
+    }
+    return Promise.reject(new Error(response.data?.message || 'Operation failed'));
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken');
+      window.location.replace('/login');
+    }
+    return Promise.reject(error);
+  }
+);
 
 const Dashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('doubts');
@@ -30,19 +70,17 @@ const Dashboard = ({ onLogout }) => {
 
       const response = await instance.get('/admin/dashboard-stats');
 
-      if (response.data.success) {
-        const hour = new Date().getHours();
-        const timeBasedGreeting =
-          hour < 12 ? 'Good morning' :
-          hour < 18 ? 'Good afternoon' :
-          'Good evening';
+      const hour = new Date().getHours();
+      const timeBasedGreeting =
+        hour < 12 ? 'Good morning' :
+        hour < 18 ? 'Good afternoon' :
+        'Good evening';
 
-        setWelcomeMessage(`${timeBasedGreeting}, Admin! 👋`);
-        setStats(response.data.stats);
-      }
+      setWelcomeMessage(`${timeBasedGreeting}, Admin! 👋`);
+      setStats(response.data.stats);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      setError(error.response?.data?.message || 'Failed to load dashboard statistics');
+      setError(error.message || 'Failed to load dashboard statistics');
     } finally {
       setLoading(false);
     }
