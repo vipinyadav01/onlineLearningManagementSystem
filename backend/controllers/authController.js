@@ -3,14 +3,11 @@ const User = require('../models/User');
 const cloudinary = require('cloudinary').v2;
 const bcrypt = require('bcryptjs');
 
-// Cloudinary Configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
-// Token Generation Utilities
 const generateAccessToken = (id, expiresIn = '1h') => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn,
@@ -31,12 +28,16 @@ const generateRefreshToken = (id) => {
 const signup = async (req, res) => {
   try {
     const { name, email, password, profilePic } = req.body;
-
-    // Comprehensive input validation
     if (!name || name.length < 2) {
       return res.status(400).json({
         success: false,
         message: 'Name must be at least 2 characters long',
+      });
+    }
+    if (!/^[A-Za-z\s]+$/.test(name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name must contain only letters and spaces, no numbers',
       });
     }
 
@@ -55,8 +56,6 @@ const signup = async (req, res) => {
     }
 
     const sanitizedEmail = email.toLowerCase().trim();
-
-    // Check for existing user
     const existingUser = await User.findOne({ email: sanitizedEmail });
     if (existingUser) {
       return res.status(400).json({
@@ -64,16 +63,13 @@ const signup = async (req, res) => {
         message: 'Email already registered',
       });
     }
-
-    // Initialize user object
     const user = new User({
       name: name.trim(),
       email: sanitizedEmail,
-      password, // Password will be hashed by pre-save middleware
+      password, 
       profilePic: null,
     });
 
-    // Upload profile picture to Cloudinary if provided
     if (profilePic) {
       try {
         const cloudinaryResponse = await cloudinary.uploader.upload(profilePic, {
@@ -83,20 +79,16 @@ const signup = async (req, res) => {
         user.profilePic = cloudinaryResponse.secure_url;
       } catch (cloudinaryError) {
         console.error('Cloudinary Upload Error:', cloudinaryError);
-        // Continue without profile picture
       }
     }
 
-    // Save user
     await user.save();
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Update user with refresh token
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Respond with user details and tokens
     res.status(201).json({
       success: true,
       data: {
@@ -347,8 +339,17 @@ const updateProfile = async (req, res) => {
         user.profilePic = cloudinaryResponse.secure_url;
       } catch (cloudinaryError) {
         console.error('Cloudinary Upload Error:', cloudinaryError);
-        // Continue without updating profile picture
-      }
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading profile picture',
+        });
+    }
+    }
+    if (name && name.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name must be at least 2 characters long',
+      });
     }
 
     await user.save();
@@ -408,7 +409,7 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    user.password = newPassword; // Will be hashed by pre-save middleware
+    user.password = newPassword; 
     await user.save();
 
     res.status(200).json({
