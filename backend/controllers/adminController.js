@@ -3,11 +3,11 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
 // Create JWT Token with consistent expiration time
-const createToken = (userId, role) => {
+const createToken = (userId, role = 'admin') => {
   return jwt.sign(
     { id: userId, role: role },
     process.env.JWT_SECRET,
-    { expiresIn: '24h' } // Changed to 24 hours for consistency
+    { expiresIn: '24h' } 
   );
 };
 

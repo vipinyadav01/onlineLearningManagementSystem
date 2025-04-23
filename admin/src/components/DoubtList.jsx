@@ -3,7 +3,7 @@ import { BarChart2, Users, MessageSquare, Calendar, RefreshCw, AlertCircle } fro
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 
-function DoubtList({ onLogout }) {
+function DoubtList({ onLogout, role = "admin" }) {
   const [doubts, setDoubts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,11 +17,11 @@ function DoubtList({ onLogout }) {
     setError(null);
     try {
       console.log('Fetching doubts:', {
-        endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin`,
+        endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/${role}`,
         page,
         limit
       });
-      const response = await api.get('/doubts/admin', {
+      const response = await api.get(`/doubts/${role}`, {
         params: { page, limit }
       });
 
@@ -58,7 +58,7 @@ function DoubtList({ onLogout }) {
       } else if (err.response?.status === 403) {
         errorMessage = 'Admin access required. Please log in with an admin account.';
       } else if (err.response?.status === 404) {
-        errorMessage = 'Doubts endpoint not found. Please verify: 1) Backend server is running at the correct URL (check REACT_APP_API_BASE_URL in .env). 2) /api/doubts/admin route is defined in the backend. 3) No network issues blocking the request.';
+        errorMessage = `Doubts endpoint not found. Please verify: 1) Backend server is running at the correct URL (check REACT_APP_API_BASE_URL in .env). 2) /api/doubts/${role} route is defined in the backend. 3) No network issues blocking the request.`;
       } else if (err.response?.status === 500) {
         errorMessage = 'Server error occurred. Please check backend logs or contact support.';
       } else if (err.message.includes('Network Error')) {
@@ -74,7 +74,7 @@ function DoubtList({ onLogout }) {
 
   useEffect(() => {
     fetchData();
-  }, [page, navigate, onLogout]);
+  }, [page, navigate, onLogout, role]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {

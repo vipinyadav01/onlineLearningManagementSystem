@@ -3,6 +3,9 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
   timeout: 10000,
+  headers: {
+    'X-Role': 'admin' 
+  }
 });
 
 api.interceptors.request.use(
@@ -39,6 +42,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 
 export default api;

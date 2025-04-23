@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { BarChart2, PieChart, LineChart, RefreshCw, AlertCircle, Clock } from 'lucide-react';
 import Chart from 'chart.js/auto';
 
-const StatsPanel = () => {
+const StatsPanel = ({ role = 'admin' }) => { 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,10 +19,11 @@ const StatsPanel = () => {
     try {
       console.log('Fetching stats:', {
         endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin/stats`,
-        timeRange
+        timeRange,
+        role 
       });
       const response = await api.get('/doubts/admin/stats', {
-        params: { timeRange }
+        params: { timeRange, role } 
       });
 
       if (response.data.success) {

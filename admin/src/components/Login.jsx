@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Lock, Mail, LogIn, BookOpen } from 'lucide-react';
 import axios from "axios";
 
@@ -19,6 +19,7 @@ const Login = ({ onLogin }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/admin/login`, {
         email,
         password,
+        role: "admin",
       });
 
       if (response.data.success && response.data.token) {
