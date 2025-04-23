@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { FileText } from 'lucide-react';
 
 const DoubtForm = () => {
   const [authStatus, setAuthStatus] = useState('checking');
@@ -496,6 +497,15 @@ const DoubtForm = () => {
                   </div>
                 </div>
               </div>
+              <div className="mt-4 text-center">
+      <button
+        onClick={() => navigate('/user-doubts')}
+        className="inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors focus:ring-2 focus:ring-teal-500/40 focus:outline-none"
+      >
+        <FileText className="h-5 w-5 mr-2" />
+        View Your Doubts
+      </button>
+    </div>
             </div>
           )}
         </div>

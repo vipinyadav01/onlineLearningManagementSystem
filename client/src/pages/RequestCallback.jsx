@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Phone, Mail, User, Clock, MessageSquare, CheckCircle } from 'lucide-react';
-import axios from 'axios';
 
 const RequestCallback = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +11,7 @@ const RequestCallback = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [result, setResult] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,19 +24,69 @@ const RequestCallback = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setResult("Preparing your request...");
+    const progressMessages = [
+      "Initializing request...",
+      "Encrypting your data...",
+      "Connecting to our servers..."
+    ];
+    
+    // Display progress messages with delay
+    let messageIndex = 0;
+    const messageInterval = setInterval(() => {
+      if (messageIndex < progressMessages.length) {
+        setResult(progressMessages[messageIndex]);
+        messageIndex++;
+      } else {
+        clearInterval(messageInterval);
+      }
+    }, 800);
     
     try {
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/request-callback`, formData);
-      setIsSuccess(true);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        preferredTime: '',
-        message: ''
+      const formDataToSubmit = new FormData();
+      
+      // Append form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataToSubmit.append(key, value);
       });
+      
+      // Append required Web3Forms fields
+      formDataToSubmit.append("access_key", "3eecb045-7326-4d75-b72b-a939051dc170");
+      formDataToSubmit.append("subject", "New Callback Request from TechBits Website");
+      formDataToSubmit.append("from_name", "TechBits Website");
+      formDataToSubmit.append("reply_to", formData.email);
+      formDataToSubmit.append("botcheck", "");
+      
+      // Add artificial delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formDataToSubmit
+      });
+
+      const data = await response.json();
+      clearInterval(messageInterval);
+
+      if (data.success) {
+        setResult("Success! Preparing your confirmation...");
+        setTimeout(() => {
+          setIsSuccess(true);
+          setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            preferredTime: '',
+            message: ''
+          });
+        }, 800);
+      } else {
+        console.error("Error submitting form:", data);
+        setResult(data.message || "⚠️ Something went wrong. Please try again.");
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
+      setResult("⚠️ Connection issue. Please check your internet and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -54,7 +104,7 @@ const RequestCallback = () => {
             Request a Callback
           </h1>
           <p className="text-slate-400 max-w-lg mx-auto">
-            Our education consultants will call you back at your preferred time to discuss your learning needs.
+            Our TechBits consultants will call you back at your preferred time to discuss your technical needs.
           </p>
         </div>
 
@@ -142,9 +192,12 @@ const RequestCallback = () => {
                   onChange={handleChange}
                   rows={4}
                   className="block w-full pl-10 bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400/50 focus:border-transparent"
-                  placeholder="Any specific questions or topics you'd like to discuss?"
+                  placeholder="Any specific technologies or services you'd like to discuss?"
                 />
               </div>
+
+              {/* Hidden Web3Forms Honeypot Field (spam protection) */}
+              <input type="checkbox" name="botcheck" className="hidden" style={{ display: 'none' }} />
 
               {/* Submit Button */}
               <div className="pt-2">
@@ -171,6 +224,13 @@ const RequestCallback = () => {
                   )}
                 </button>
               </div>
+              
+              {/* Form submission status message */}
+              {result && !isSuccess && (
+                <div className="mt-3 text-center">
+                  <p className="text-teal-400">{result}</p>
+                </div>
+              )}
             </form>
           </div>
         ) : (
@@ -181,7 +241,7 @@ const RequestCallback = () => {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Request Submitted!</h2>
             <p className="text-slate-400 mb-6">
-              Our team will contact you at your preferred time. Typically we respond within 24 hours.
+              Thank you for contacting TechBits. Our technical team will contact you at your preferred time. Typically we respond within 24 hours.
             </p>
             <button
               onClick={() => setIsSuccess(false)}
@@ -200,7 +260,7 @@ const RequestCallback = () => {
             </div>
             <h3 className="text-lg font-medium text-white mb-2">24/7 Support</h3>
             <p className="text-slate-400 text-sm">
-              Our support team is available round the clock to assist you with any queries.
+              Our TechBits support team is available round the clock to assist you with any technical queries.
             </p>
           </div>
 
@@ -210,7 +270,7 @@ const RequestCallback = () => {
             </div>
             <h3 className="text-lg font-medium text-white mb-2">Expert Guidance</h3>
             <p className="text-slate-400 text-sm">
-              Get personalized course recommendations from our education specialists.
+              Get personalized technical solutions from our certified TechBits specialists.
             </p>
           </div>
 
@@ -220,7 +280,7 @@ const RequestCallback = () => {
             </div>
             <h3 className="text-lg font-medium text-white mb-2">Quick Response</h3>
             <p className="text-slate-400 text-sm">
-              We guarantee a callback within your specified time window.
+              TechBits guarantees a callback within your specified time window for efficient service.
             </p>
           </div>
         </div>

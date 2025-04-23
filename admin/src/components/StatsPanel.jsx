@@ -13,17 +13,26 @@ const StatsPanel = ({ role = 'admin' }) => {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      // Check for authentication token
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        throw new Error('No authentication token found');
+      }
+      
       console.log('Fetching stats:', {
         endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin/stats`,
         timeRange,
         role 
       });
       const response = await api.get('/doubts/admin/stats', {
-        params: { timeRange, role } 
+        params: { timeRange, role },
+        headers: {
+          Authorization: `Bearer ${adminToken}`
+        }
       });
 
       if (response.data.success) {
@@ -38,7 +47,11 @@ const StatsPanel = ({ role = 'admin' }) => {
         details: err.response?.data
       });
       let errorMessage = err.response?.data?.message || err.message || 'Failed to fetch statistics';
-      if (err.response?.status === 401) {
+      if (err.message === 'No authentication token found') {
+        localStorage.removeItem('adminToken');
+        navigate('/admin/login');
+        errorMessage = 'Authentication required. Please log in to continue.';
+      } else if (err.response?.status === 401) {
         localStorage.removeItem('adminToken');
         navigate('/admin/login');
         errorMessage = 'Session expired. Please log in again.';
@@ -47,35 +60,28 @@ const StatsPanel = ({ role = 'admin' }) => {
       } else if (err.response?.status === 400 && err.response?.data?.code === 'INVALID_TIME_RANGE') {
         errorMessage = 'Invalid time range selected. Please choose a valid option.';
       } else if (err.response?.status === 404) {
-        errorMessage = 'Stats endpoint not found. Please verify: 1) Backend server is running at the correct URL (check REACT_APP_API_BASE_URL in .env). 2) /api/doubts/admin/stats route is defined in the backend. 3) No network issues blocking the request.';
+        errorMessage = 'Stats endpoint not found. Please verify: 1) Backend server is running at the correct URL (check VITE_API_BASE_URL in .env). 2) /api/doubts/admin/stats route is defined in the backend. 3) No network issues blocking the request.';
       } else if (err.response?.status === 500) {
         errorMessage = 'Server error occurred. Please check backend logs or contact support.';
-      } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to the server. Ensure the backend is running on the correct port (default: 5000) and REACT_APP_API_BASE_URL is set correctly in .env.';
       }
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange, navigate, role]);
 
   useEffect(() => {
-    fetchData();
-  }, [timeRange, navigate]);
-
-  useEffect(() => {
-    if (stats && chartRef.current && stats.stats?.length > 0) {
-      renderChart();
+    // Check for token before fetching data
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken) {
+      fetchData();
+    } else {
+      setError('Authentication required. Please log in to continue.');
+      navigate('/admin/login');
     }
-    return () => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.destroy();
-        chartInstanceRef.current = null;
-      }
-    };
-  }, [stats]);
+  }, [timeRange, navigate, fetchData]);
 
-  const renderChart = () => {
+  const renderChart = React.useCallback(() => {
     const ctx = chartRef.current.getContext('2d');
     if (chartInstanceRef.current) {
       chartInstanceRef.current.destroy();
@@ -123,7 +129,20 @@ const StatsPanel = ({ role = 'admin' }) => {
         },
       },
     });
-  };
+  }, [stats]);
+
+  useEffect(() => {
+    if (stats && chartRef.current && stats.stats?.length > 0) {
+      renderChart();
+    }
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+        chartInstanceRef.current = null;
+      }
+    };
+  }, [stats, renderChart]);
+
 
   if (loading) {
     return (

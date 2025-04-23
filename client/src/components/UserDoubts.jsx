@@ -1,6 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { 
+  Loader, 
+  LogIn, 
+  Plus, 
+  Check, 
+  Clock, 
+  AtSign, 
+  Calendar,
+  FileText,
+  Film,
+  Image as ImageIcon,
+  File
+} from 'lucide-react';
+
+// Constants for API configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+// Helper function to validate URL
+const isValidUrl = (url) => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const UserDoubts = () => {
   const [doubts, setDoubts] = useState([]);
@@ -9,60 +35,62 @@ const UserDoubts = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchDoubts = async () => {
-      const token = localStorage.getItem('token');
+  const fetchDoubts = useCallback(async () => {
+    const token = localStorage.getItem('token');
 
-      if (!token) {
+    if (!token) {
+      localStorage.removeItem('token');
+      setAuthStatus('unauthenticated');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/doubts/my-doubts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000, // Add timeout to prevent hanging
+      });
+
+      if (response.data.success) {
+        setDoubts(Array.isArray(response.data.data) ? response.data.data : []);
+        setAuthStatus('authenticated');
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch doubts');
+      }
+    } catch (error) {
+      console.error('Fetch Doubts Error:', error.response?.data || error.message);
+      if (error.response?.status === 401 || error.response?.status === 403) {
         localStorage.removeItem('token');
         setAuthStatus('unauthenticated');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/doubts/my-doubts`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
+        setError('Session expired. Please log in again.');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setError(
+          error.response?.data?.message || 
+          'Failed to load your doubts. Please check your connection and try again.'
         );
-
-        if (response.data.success) {
-          setDoubts(response.data.data || []);
-          setAuthStatus('authenticated');
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch doubts');
-        }
-      } catch (error) {
-        console.error('Fetch Doubts Error:', error.response?.data || error.message);
-        if (error.response?.status === 401 || error.response?.status === 404) {
-          localStorage.removeItem('token');
-          setAuthStatus('unauthenticated');
-          setError('Session expired. Please log in again.');
-          setTimeout(() => navigate('/login'), 1500);
-        } else {
-          setError(error.response?.data?.message || 'Failed to load your doubts. Please try again.');
-          setAuthStatus('authenticated'); 
-        }
-      } finally {
-        setLoading(false);
+        setAuthStatus('authenticated');
       }
-    };
-
-    fetchDoubts();
+    } finally {
+      setLoading(false);
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    fetchDoubts();
+  }, [fetchDoubts]);
 
   if (loading || authStatus === 'checking') {
     return (
       <div className="flex justify-center items-center h-screen bg-slate-900">
-        <div className="animate-spin rounded-full h-14 w-14 border-4 border-slate-700 border-t-teal-400"></div>
+        <Loader className="h-12 w-12 text-teal-400 animate-spin" aria-label="Loading" />
       </div>
     );
   }
+
   if (authStatus === 'unauthenticated') {
     return (
       <div className="max-w-md mx-auto mt-16 p-8 bg-slate-800/90 rounded-xl shadow-lg border border-slate-700/50 backdrop-blur-sm">
@@ -70,13 +98,117 @@ const UserDoubts = () => {
         <p className="text-slate-300 mb-8">Please log in to view your submitted doubts.</p>
         <button
           onClick={() => navigate('/login')}
-          className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow-md transition-all duration-200 transform hover:translate-y-[-1px]"
+          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow-md transition-all duration-200 transform hover:translate-y-[-1px]"
+          aria-label="Go to Login"
         >
+          <LogIn size={18} />
           Go to Login
         </button>
       </div>
     );
   }
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'resolved':
+        return <Check size={14} className="mr-1.5" />;
+      case 'in_progress':
+      case 'pending':
+      default:
+        return <Clock size={14} className="mr-1.5" />;
+    }
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'resolved':
+        return 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30';
+      case 'in_progress':
+        return 'bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30';
+      case 'pending':
+      default:
+        return 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30';
+    }
+  };
+
+  const getFileExtension = (filename) => {
+    if (!filename) return '';
+    return filename.split('.').pop()?.toLowerCase() || '';
+  };
+
+  const getFileIcon = (filename) => {
+    if (!filename) return <File size={14} />;
+    
+    const ext = getFileExtension(filename);
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+      return <ImageIcon size={14} />;
+    } else if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) {
+      return <Film size={14} />;
+    } else if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(ext)) {
+      return <FileText size={14} />;
+    }
+    
+    return <File size={14} />;
+  };
+
+  const getAttachmentURL = (attachment) => {
+    if (!attachment) return '#';
+    
+    if (typeof attachment === 'string') {
+      return isValidUrl(attachment) ? attachment : '#';
+    }
+    
+    if (typeof attachment === 'object' && attachment !== null) {
+      const url = attachment.secure_url || attachment.url;
+      return isValidUrl(url) ? url : '#';
+    }
+    
+    return '#';
+  };
+
+  const getAttachmentFilename = (attachment, index) => {
+    let filename = `Attachment ${index + 1}`;
+    
+    if (typeof attachment === 'object' && attachment !== null) {
+      filename = attachment.original_filename || attachment.filename || filename;
+    } else if (typeof attachment === 'string' && isValidUrl(attachment)) {
+      try {
+        const url = new URL(attachment);
+        const pathParts = url.pathname.split('/');
+        const lastPart = pathParts[pathParts.length - 1];
+        const cleanedName = lastPart.replace(/^v\d+\//, '');
+        if (cleanedName) {
+          filename = decodeURIComponent(cleanedName);
+        }
+      } catch {
+        if (attachment.includes('/')) {
+          const urlParts = attachment.split('/');
+          const lastPart = urlParts[urlParts.length - 1];
+          filename = lastPart.split('?')[0] || filename;
+        }
+      }
+    }
+    
+    return filename;
+  };
+
+  const handleAttachmentClick = (event, attachment) => {
+    const url = getAttachmentURL(attachment);
+    const filename = getAttachmentFilename(attachment, 0);
+    
+    if (url === '#') {
+      event.preventDefault();
+      return;
+    }
+
+    if (getFileExtension(filename) === 'pdf' && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+      window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto my-12 px-4 sm:px-6">
       <div className="bg-slate-800/80 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-slate-700/50">
@@ -90,14 +222,13 @@ const UserDoubts = () => {
 
         {doubts.length === 0 ? (
           <div className="text-center py-16 px-6">
-            <p className="text-slate-300 text-lg mb-6">You haven&apos submitted any doubts yet.</p>
+            <p className="text-slate-300 text-lg mb-6">You haven't submitted any doubts yet.</p>
             <button
-              onClick={() => navigate('/submit-doubt')}
+              onClick={() => navigate('/doubt')}
               className="inline-flex items-center bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 shadow-md transition-all duration-200 transform hover:translate-y-[-1px]"
+              aria-label="Submit a Doubt"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
+              <Plus size={18} className="mr-2" />
               Submit a Doubt
             </button>
           </div>
@@ -105,56 +236,55 @@ const UserDoubts = () => {
           <div className="space-y-8">
             {doubts.map((doubt) => (
               <div
-                key={doubt._id}
+                key={doubt._id || `doubt-${Math.random()}`} // Fallback key for edge cases
                 className="border border-slate-700/60 bg-slate-800/90 rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 hover:bg-slate-800"
               >
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                  <h3 className="text-xl font-semibold text-white">{doubt.title}</h3>
+                  <h3 className="text-xl font-semibold text-white">
+                    {doubt.title || 'Untitled Doubt'}
+                  </h3>
                   <span
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium inline-flex items-center
-                    ${doubt.status === 'resolved' ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30' : 
-                      doubt.status === 'in_progress' ? 'bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30' :
-                      'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30'}`}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium inline-flex items-center ${getStatusClass(doubt.status)}`}
                   >
-                    {doubt.status === 'resolved' && (
-                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                      </svg>
-                    )}
-                    {doubt.status === 'in_progress' && (
-                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
-                      </svg>
-                    )}
-                    {doubt.status === 'pending' && (
-                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
-                      </svg>
-                    )}
-                    {doubt.status.charAt(0).toUpperCase() + doubt.status.slice(1).replace('_', ' ')}
+                    {getStatusIcon(doubt.status)}
+                    {(doubt.status || 'pending')
+                      .charAt(0)
+                      .toUpperCase() + (doubt.status || 'pending').slice(1).replace('_', ' ')}
                   </span>
                 </div>
 
-                <p className="mt-4 text-slate-300 leading-relaxed">{doubt.description}</p>
+                <p className="mt-4 text-slate-300 leading-relaxed">
+                  {doubt.description || 'No description provided.'}
+                </p>
 
-                {doubt.attachments && doubt.attachments.length > 0 && (
+                {doubt.attachments && Array.isArray(doubt.attachments) && doubt.attachments.length > 0 && (
                   <div className="mt-4">
                     <p className="text-sm text-slate-400 font-medium mb-2">Attachments:</p>
                     <div className="flex flex-wrap gap-2">
-                      {doubt.attachments.map((attachment, index) => (
-                        <a
-                          key={index}
-                          href={attachment.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 border border-teal-500/20 transition-all duration-200"
-                        >
-                          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                          </svg>
-                          {attachment.filename || `Attachment ${index + 1}`}
-                        </a>
-                      ))}
+                      {doubt.attachments.map((attachment, index) => {
+                        const url = getAttachmentURL(attachment);
+                        const filename = getAttachmentFilename(attachment, index);
+                        const fileIcon = getFileIcon(filename);
+                        
+                        return (
+                          <a
+                            key={`${doubt._id}-attachment-${index}`}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => handleAttachmentClick(e, attachment)}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                              url === '#'
+                                ? 'bg-gray-500/10 text-gray-400 cursor-not-allowed'
+                                : 'bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 border border-teal-500/20'
+                            }`}
+                            aria-label={`Download ${filename}`}
+                          >
+                            <span className="mr-1.5">{fileIcon}</span>
+                            {filename}
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -168,20 +298,18 @@ const UserDoubts = () => {
 
                 <div className="mt-5 pt-3 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-slate-400">
                   <span className="inline-flex items-center">
-                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
-                    </svg>
+                    <AtSign size={14} className="mr-1.5" />
                     Order ID: {doubt.order?._id?.substring(0, 6) || 'N/A'}
                   </span>
                   <span className="inline-flex items-center">
-                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    Submitted: {new Date(doubt.createdAt).toLocaleDateString('en-US', { 
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                    <Calendar size={14} className="mr-1.5" />
+                    Submitted: {doubt.createdAt 
+                      ? new Date(doubt.createdAt).toLocaleDateString('en-US', { 
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      : 'N/A'}
                   </span>
                 </div>
               </div>

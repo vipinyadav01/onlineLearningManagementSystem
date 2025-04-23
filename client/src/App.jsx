@@ -12,6 +12,7 @@ import Checkout from './components/Checkout';
 import MyOrders from './components/MyOrders';
 import Testimonials from './pages/Testimonial';
 import DoubtForm from "./components/DoubtForm"
+import UserDoubts from "./components/UserDoubts"
 
 const ComingSoon = ({ title }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -96,6 +97,7 @@ const App = () => {
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path='/testimonials' element={<Testimonials />} />
             <Route path='/doubt' element={<DoubtForm />} />
+            <Route path='/user-doubts' element={<UserDoubts />} />
           </Routes>
         </div>
 
