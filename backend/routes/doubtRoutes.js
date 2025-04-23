@@ -89,28 +89,24 @@ router.get(
 router.get(
   '/admin',   
   authMiddleware,
-  adminMiddleware,
   getAllDoubtsAdmin
 );
 
 router.get(
   '/admin/single/:id',  
   authMiddleware,
-  adminMiddleware,
   getSingleDoubtAdmin
 );
 
 router.put(
   '/admin/:id',   
   authMiddleware,
-  adminMiddleware,
   updateDoubtAdmin
 );
 
 router.get(
   '/admin/stats',   
   authMiddleware,
-  adminMiddleware,
   getDoubtStatsAdmin
 );
 
