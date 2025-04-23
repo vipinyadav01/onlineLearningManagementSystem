@@ -42,25 +42,24 @@ const DoubtForm = () => {
           try {
             const ordersResponse = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/orders/my-orders`, { headers });
             if (ordersResponse.data.success) {
-              const userOrders = ordersResponse.data.orders || ordersResponse.data.data || [];
+              const userOrders = ordersResponse.data.orders || [];
               const successOrders = userOrders.filter(order => order.status === 'Success');
               setOrders(successOrders);
 
-              // Pre-select order from query parameter
               const params = new URLSearchParams(location.search);
               const orderId = params.get('orderId');
               if (orderId && successOrders.some(order => order._id === orderId)) {
                 setDoubt(prev => ({ ...prev, orderId }));
               } else if (orderId) {
-                setError('Invalid or unauthorized order selected. Please choose a valid order.');
+                setError('Invalid or unauthorized order selected. Please choose a valid order from your account.');
               }
             } else {
               console.error('Failed to get orders:', ordersResponse.data.message);
-              setError('Failed to load orders. Please try again later.');
+              setError('Failed to load orders. Please try again or contact support.');
             }
           } catch (orderError) {
             console.error('Failed to fetch orders:', orderError);
-            setError('Failed to load orders. Please try again later.');
+            setError('Failed to load orders. Please try again or contact support.');
           }
         }
       } catch (error) {
@@ -172,6 +171,7 @@ const DoubtForm = () => {
         });
       }
 
+      console.log('Submitting doubt:', { title: doubt.title, orderId: doubt.orderId });
       const response = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/doubts/create`,
         formData,
@@ -203,9 +203,13 @@ const DoubtForm = () => {
         if (response.data.code === 'ORDER_NOT_COMPLETED') {
           setError(`This order is not completed yet (Status: ${response.data.orderStatus}). Please wait until the order is marked as "Success".`);
         } else if (response.data.code === 'ORDER_NOT_FOUND') {
-          setError('The selected order was not found. Please choose a valid order.');
+          setError('The selected order was not found. Please choose a valid order from your account.');
         } else if (response.data.code === 'ORDER_OWNERSHIP_ERROR') {
           setError('The selected order does not belong to you. Please choose an order from your account.');
+        } else if (response.data.code === 'INVALID_ORDER_ID') {
+          setError('The provided order ID is invalid. Please select a valid order.');
+        } else if (response.data.code === 'MISSING_FIELDS') {
+          setError('Please provide all required fields: title, description, and order.');
         } else {
           setError(response.data.message || 'Failed to submit doubt. Please try again.');
         }
@@ -216,7 +220,7 @@ const DoubtForm = () => {
         if (error.response.data?.code === 'ORDER_NOT_COMPLETED') {
           setError(`This order is not completed yet (Status: ${error.response.data.orderStatus}). Please wait until the order is marked as "Success".`);
         } else if (error.response.data?.code === 'ORDER_NOT_FOUND') {
-          setError('The selected order was not found. Please choose a valid order.');
+          setError('The selected order was not found. Please choose a valid order from your account.');
         } else if (error.response.data?.code === 'ORDER_OWNERSHIP_ERROR') {
           setError('The selected order does not belong to you. Please choose an order from your account.');
         } else if (error.response.data?.code === 'INVALID_ORDER_ID') {
@@ -347,9 +351,9 @@ const DoubtForm = () => {
                   }`}
                 >
                   <option value="">{orders.length > 0 ? 'Select an order' : 'No orders available'}</option>
-                  {orders.map((order, index) => (
-                    <option key={order._id || index} value={order._id}>
-                      {order.orderId || order._id} - {order.courseTitle || order.productName || 'Unnamed Order'}
+                  {orders.map((order) => (
+                    <option key={order._id} value={order._id}>
+                      {order.orderId || order._id} - {order.courseTitle || 'Unnamed Course'}
                     </option>
                   ))}
                 </select>

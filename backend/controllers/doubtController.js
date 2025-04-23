@@ -86,17 +86,30 @@ const createDoubt = async (req, res) => {
     }
 
     // Verify the order exists and belongs to the user
+    console.log('Validating order:', { orderId, userId });
     const order = await Order.findOne({ 
       _id: orderId, 
-      user: userId
+      userId: userId
     }).select('status orderNumber productName').lean();
 
     if (!order) {
+      const anyOrder = await Order.findById(orderId).lean();
+      if (anyOrder) {
+        console.log('Order ownership error:', { orderId, userId, orderOwner: anyOrder.userId });
+        return res.status(403).json({
+          success: false,
+          message: 'Order does not belong to you',
+          code: 'ORDER_OWNERSHIP_ERROR',
+          suggestion: 'Please select an order from your account'
+        });
+      }
+
+      console.log('Order not found:', { orderId, userId });
       return res.status(404).json({ 
         success: false, 
-        message: 'Order not found or does not belong to you',
+        message: 'Order not found in system',
         code: 'ORDER_NOT_FOUND',
-        suggestion: 'Please check your order history and try again'
+        suggestion: 'Please check the order ID and try again'
       });
     }
 
@@ -169,17 +182,7 @@ const createDoubt = async (req, res) => {
           });
         } catch (uploadError) {
           console.error('Cloudinary upload error:', uploadError);
-          
-          // Clean up any already uploaded files
-          await Promise.all(
-            attachments.map(attachment => 
-              cloudinary.uploader.destroy(attachment.public_id)
-                .catch(cleanupError => 
-                  console.error('Cleanup error:', cleanupError)
-                )
-            )
-          );
-
+          await cleanupUploads(attachments);
           return res.status(500).json({
             success: false,
             message: 'Failed to upload attachments',
@@ -211,6 +214,7 @@ const createDoubt = async (req, res) => {
       description: doubt.description,
       status: doubt.status,
       createdAt: doubt.createdAt,
+      user: userId,
       order: {
         _id: order._id,
         orderNumber: order.orderNumber,
@@ -227,7 +231,7 @@ const createDoubt = async (req, res) => {
     return res.status(201).json({ 
       success: true, 
       message: 'Doubt submitted successfully',
-      data: responseData
+      doubt: responseData
     });
 
   } catch (error) {
@@ -238,7 +242,6 @@ const createDoubt = async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Handle specific errors
     if (error.name === 'CastError') {
       return res.status(400).json({ 
         success: false, 
@@ -257,7 +260,6 @@ const createDoubt = async (req, res) => {
       });
     }
 
-    // Default error response
     return res.status(500).json({ 
       success: false, 
       message: 'Internal server error',
@@ -296,7 +298,6 @@ const getUserDoubts = async (req, res) => {
       .select('title description status createdAt attachments response resolvedAt')
       .lean();
 
-    // Format response
     const formattedDoubts = doubts.map(doubt => ({
       ...doubt,
       order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
@@ -373,7 +374,6 @@ const getAllDoubtsAdmin = async (req, res) => {
 
     const doubts = await Doubt.paginate(query, options);
 
-    // Format the response
     const formattedDoubts = {
       ...doubts,
       docs: doubts.docs.map(doubt => ({
@@ -448,7 +448,6 @@ const getSingleDoubtAdmin = async (req, res) => {
       });
     }
 
-    // Format the response
     const formattedDoubt = {
       ...doubt,
       user: doubt.user || { name: 'Unknown', email: 'N/A' },
@@ -492,7 +491,6 @@ const updateDoubtAdmin = async (req, res) => {
     const { status, response } = req.body;
     const { id } = req.params;
 
-    // Validate input
     if (!status) {
       return res.status(400).json({ 
         success: false, 
@@ -501,7 +499,6 @@ const updateDoubtAdmin = async (req, res) => {
       });
     }
 
-    // Validate status
     const validStatuses = ['pending', 'in_progress', 'resolved'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ 
@@ -555,7 +552,6 @@ const updateDoubtAdmin = async (req, res) => {
       });
     }
 
-    // Format the response
     const formattedDoubt = {
       ...doubt,
       user: doubt.user || { name: 'Unknown', email: 'N/A' },
@@ -604,65 +600,52 @@ const updateDoubtAdmin = async (req, res) => {
 const getDoubtStatsAdmin = async (req, res) => {
   try {
     const { timeRange } = req.query;
-    const dateFilter = {};
-
-    if (timeRange) {
-      const now = new Date();
-      if (timeRange === 'week') {
-        dateFilter.createdAt = { $gte: new Date(now.setDate(now.getDate() - 7)) };
-      } else if (timeRange === 'month') {
-        dateFilter.createdAt = { $gte: new Date(now.setDate(now.getDate() - 30)) };
-      } else if (timeRange === 'year') {
-        dateFilter.createdAt = { $gte: new Date(now.setFullYear(now.getFullYear() - 1)) };
-      } else if (timeRange !== 'all') {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid timeRange value',
-          code: 'INVALID_TIME_RANGE'
-        });
-      }
+    const validTimeRanges = ['week', 'month', 'year', 'all'];
+    
+    if (timeRange && !validTimeRanges.includes(timeRange)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid time range. Use: week, month, year, or all',
+        code: 'INVALID_TIME_RANGE'
+      });
     }
 
-    const [stats, total, resolved, pending, inProgress] = await Promise.all([
-      Doubt.aggregate([
-        dateFilter.createdAt ? { $match: dateFilter } : {},
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-          },
-        },
-      ]),
-      Doubt.countDocuments(dateFilter),
-      Doubt.countDocuments({ ...dateFilter, status: 'resolved' }),
-      Doubt.countDocuments({ ...dateFilter, status: 'pending' }),
-      Doubt.countDocuments({ ...dateFilter, status: 'in_progress' }),
+    let dateFilter = {};
+    if (timeRange === 'week') {
+      dateFilter = { createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } };
+    } else if (timeRange === 'month') {
+      dateFilter = { createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } };
+    } else if (timeRange === 'year') {
+      dateFilter = { createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) } };
+    }
+
+    const stats = await Doubt.aggregate([
+      { $match: dateFilter },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
+
+    const total = await Doubt.countDocuments(dateFilter);
+    const resolved = stats.find(s => s._id === 'resolved')?.count || 0;
+    const pending = stats.find(s => s._id === 'pending')?.count || 0;
+    const inProgress = stats.find(s => s._id === 'in_progress')?.count || 0;
+    const resolutionRate = total > 0 ? ((resolved / total) * 100).toFixed(1) : 0;
 
     res.json({
       success: true,
-      data: {
-        stats,
-        total,
-        resolved,
-        pending,
-        inProgress,
-        resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : 0,
-      },
+      data: { stats, total, resolved, pending, inProgress, resolutionRate }
     });
   } catch (error) {
-    console.error('Error fetching doubt stats:', { 
-      message: error.message, 
-      stack: error.stack 
+    console.error('Error in getDoubtStatsAdmin:', {
+      message: error.message,
+      stack: error.stack
     });
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error',
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch statistics',
       code: 'SERVER_ERROR'
     });
   }
 };
-
 
 module.exports = {
   createDoubt,

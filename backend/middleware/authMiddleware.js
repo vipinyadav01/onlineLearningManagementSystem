@@ -6,31 +6,38 @@ const authMiddleware = async (req, res, next) => {
   const token = authHeader?.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Authentication required', error: 'No token provided' });
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      code: 'NO_TOKEN_PROVIDED'
+    });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(decoded)
     const user = await User.findById(decoded.id).select('_id email role');
-    console.log(user)
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Authentication failed', error: 'User no longer exists' });
+      return res.status(401).json({
+        success: false,
+        message: 'User no longer exists',
+        code: 'USER_NOT_FOUND'
+      });
     }
-
-
     req.user = { id: user._id, email: user.email, role: user.role || 'user' };
     next();
   } catch (error) {
-    console.log('Authentication error:', error);
+    console.error('Authentication error:', {
+      error: error.name,
+      message: error.message
+    });
     const responses = {
-      TokenExpiredError: { status: 401, message: 'Authentication token has expired' },
-      JsonWebTokenError: { status: 401, message: 'Invalid authentication token' },
-      NotBeforeError: { status: 401, message: 'Token not yet active' },
-      default: { status: 500, message: 'Internal server error during authentication' }
+      TokenExpiredError: { status: 401, message: 'Authentication token has expired', code: 'TOKEN_EXPIRED' },
+      JsonWebTokenError: { status: 401, message: 'Invalid authentication token', code: 'INVALID_TOKEN' },
+      NotBeforeError: { status: 401, message: 'Token not yet active', code: 'TOKEN_NOT_ACTIVE' },
+      default: { status: 500, message: 'Internal server error during authentication', code: 'SERVER_ERROR' }
     };
-    const errResp = responses[error.name] || responses.default;
-    res.status(errResp.status).json({ success: false, message: 'Authentication failed', error: errResp.message });
+    const { status, message, code } = responses[error.name] || responses.default;
+    res.status(status).json({ success: false, message, code });
   }
 };
 

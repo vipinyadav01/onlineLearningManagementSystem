@@ -8,17 +8,16 @@ const {
   updateDoubtAdmin,
   getDoubtStatsAdmin,
 } = require('../controllers/doubtController');
-const authenticate = require('../middleware/authMiddleware');
-const isAdmin = require('../middleware/adminMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const adminMiddleware = require('../middleware/adminMiddleware');
 const multer = require('multer');
 const path = require('path');
 
-// Multer setup for memory storage (files will be uploaded to Cloudinary)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { 
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 5 // Maximum 5 files
+    fileSize: 5 * 1024 * 1024, 
+    files: 5 
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -29,9 +28,7 @@ const upload = multer({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
     
-    const extname = path.extname(file.originalname).toLowerCase();
     const mimetype = file.mimetype;
-    
     if (allowedTypes.includes(mimetype)) {
       return cb(null, true);
     }
@@ -76,7 +73,7 @@ const multerErrorHandler = (err, req, res, next) => {
 // User routes
 router.post(
   '/create', 
-  authenticate, 
+  authMiddleware, 
   upload.array('attachments', 5), 
   multerErrorHandler, 
   createDoubt
@@ -84,42 +81,47 @@ router.post(
 
 router.get(
   '/my-doubts', 
-  authenticate, 
+  authMiddleware, 
   getUserDoubts
 );
 
 // Admin routes
 router.get(
-  '/admin/doubts', 
-  authenticate, 
-  isAdmin, 
+  '/admin',   
+  authMiddleware,
+  adminMiddleware,
   getAllDoubtsAdmin
 );
 
 router.get(
-  '/admin/:id', 
-  authenticate, 
-  isAdmin, 
+  '/admin/single/:id',  
+  authMiddleware,
+  adminMiddleware,
   getSingleDoubtAdmin
 );
 
 router.put(
-  '/admin/:id', 
-  authenticate, 
-  isAdmin, 
+  '/admin/:id',   
+  authMiddleware,
+  adminMiddleware,
   updateDoubtAdmin
 );
 
 router.get(
-  '/admin/stats', 
-  authenticate, 
-  isAdmin, 
+  '/admin/stats',   
+  authMiddleware,
+  adminMiddleware,
   getDoubtStatsAdmin
 );
 
 // General error handling
 router.use((err, req, res, next) => {
-  console.error('Doubt route error:', err.stack);
+  console.error('Doubt route error:', {
+    message: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.url
+  });
   res.status(500).json({ 
     success: false, 
     message: 'Internal server error',

@@ -9,20 +9,21 @@ const StatsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('week');
-  const [retrying, setRetrying] = useState(false);
-  const [retryAttempts, setRetryAttempts] = useState(3);
   const navigate = useNavigate();
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
-  const fetchData = async (retries = 3, delay = 1000) => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      setRetrying(false);
-      setRetryAttempts(retries);
-
-      const response = await api.get(`/doubts/admin/stats?timeRange=${timeRange}`);
+      console.log('Fetching stats:', {
+        endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin/stats`,
+        timeRange
+      });
+      const response = await api.get('/doubts/admin/stats', {
+        params: { timeRange }
+      });
 
       if (response.data.success) {
         setStats(response.data.data);
@@ -30,36 +31,30 @@ const StatsPanel = () => {
         throw new Error(response.data.message || 'Failed to fetch statistics');
       }
     } catch (err) {
-      console.error('Stats fetch error:', { message: err.message, status: err.status, details: err.details });
-      let errorMessage = err.message || 'Failed to fetch statistics';
-      if (err.status === 401) {
+      console.error('Stats fetch error:', {
+        message: err.message,
+        status: err.response?.status,
+        details: err.response?.data
+      });
+      let errorMessage = err.response?.data?.message || err.message || 'Failed to fetch statistics';
+      if (err.response?.status === 401) {
         localStorage.removeItem('adminToken');
         navigate('/admin/login');
-        setLoading(false);
-        return;
-      } else if (err.status === 400) {
-        errorMessage = err.message || 'Invalid request parameters.';
-      } else if (err.status === 500) {
-        errorMessage = 'Server error occurred. Please contact support.';
-      } else if (err.status === 404) {
-        errorMessage = 'Statistics endpoint not found. Please check the server configuration.';
+        errorMessage = 'Session expired. Please log in again.';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Admin access required. Please log in with an admin account.';
+      } else if (err.response?.status === 400 && err.response?.data?.code === 'INVALID_TIME_RANGE') {
+        errorMessage = 'Invalid time range selected. Please choose a valid option.';
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Stats endpoint not found. Please verify: 1) Backend server is running at the correct URL (check REACT_APP_API_BASE_URL in .env). 2) /api/doubts/admin/stats route is defined in the backend. 3) No network issues blocking the request.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please check backend logs or contact support.';
       } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to the server. Please check your network or server status.';
+        errorMessage = 'Cannot connect to the server. Ensure the backend is running on the correct port (default: 5000) and REACT_APP_API_BASE_URL is set correctly in .env.';
       }
-
-      if (retries > 0) {
-        setRetrying(true);
-        setRetryAttempts(retries - 1);
-        setTimeout(() => fetchData(retries - 1, delay * 2), delay);
-      } else {
-        setError(errorMessage);
-        setRetrying(false);
-        setLoading(false);
-      }
+      setError(errorMessage);
     } finally {
-      if (!error && retryAttempts === retries) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -129,7 +124,7 @@ const StatsPanel = () => {
     });
   };
 
-  if (loading && !error) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
@@ -146,14 +141,11 @@ const StatsPanel = () => {
             <p className="text-lg font-medium">{error}</p>
           </div>
           <button
-            onClick={() => fetchData(3, 1000)}
-            disabled={retrying}
-            className={`mt-6 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-xl ${
-              retrying ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            onClick={fetchData}
+            className="mt-6 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-xl"
           >
-            <RefreshCw className={`h-5 w-5 mr-2 ${retrying ? 'animate-spin' : ''}`} />
-            {retrying ? `Retrying... (${retryAttempts} attempts left)` : 'Retry'}
+            <RefreshCw className="h-5 w-5 mr-2" />
+            Retry
           </button>
         </div>
       </div>
@@ -186,7 +178,7 @@ const StatsPanel = () => {
               </div>
               <div>
                 <h3 className="text-gray-500 text-lg font-medium">Total Doubts</h3>
-                <p className="text-4xl font-bold text-gray-800 mt-2">{stats.total}</p>
+                <p className="text-4xl font-bold text-gray-800 mt-2">{stats.total || 0}</p>
               </div>
             </div>
           </div>
@@ -197,8 +189,8 @@ const StatsPanel = () => {
               </div>
               <div>
                 <h3 className="text-gray-500 text-lg font-medium">Resolved</h3>
-                <p className="text-4xl font-bold text-emerald-600 mt-2">{stats.resolved}</p>
-                <p className="text-base text-gray-500 mt-2">{stats.resolutionRate}% resolution rate</p>
+                <p className="text-4xl font-bold text-emerald-600 mt-2">{stats.resolved || 0}</p>
+                <p className="text-base text-gray-500 mt-2">{stats.resolutionRate || 0}% resolution rate</p>
               </div>
             </div>
           </div>
@@ -209,7 +201,7 @@ const StatsPanel = () => {
               </div>
               <div>
                 <h3 className="text-gray-500 text-lg font-medium">Pending</h3>
-                <p className="text-4xl font-bold text-amber-600 mt-2">{stats.pending}</p>
+                <p className="text-4xl font-bold text-amber-600 mt-2">{stats.pending || 0}</p>
                 <p className="text-base text-gray-500 mt-2">
                   {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% of total
                 </p>
@@ -223,7 +215,7 @@ const StatsPanel = () => {
               </div>
               <div>
                 <h3 className="text-gray-500 text-lg font-medium">In Progress</h3>
-                <p className="text-4xl font-bold text-indigo-600 mt-2">{stats.inProgress}</p>
+                <p className="text-4xl font-bold text-indigo-600 mt-2">{stats.inProgress || 0}</p>
                 <p className="text-base text-gray-500 mt-2">
                   {stats.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}% of total
                 </p>

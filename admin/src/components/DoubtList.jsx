@@ -7,43 +7,64 @@ function DoubtList({ onLogout }) {
   const [doubts, setDoubts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/doubts/admin');
+      console.log('Fetching doubts:', {
+        endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin`,
+        page,
+        limit
+      });
+      const response = await api.get('/doubts/admin', {
+        params: { page, limit }
+      });
 
       if (response.data.success) {
-        const doubtData = response.data.doubts.map(doubt => ({
+        const doubtData = response.data.data.docs.map(doubt => ({
           _id: doubt._id,
           doubtId: doubt._id,
-          courseId: doubt.courseId,
-          courseTitle: doubt.courseTitle,
-          userId: doubt.userId,
-          userEmail: doubt.userEmail,
-          userName: doubt.userName,
+          courseId: doubt.order?._id || 'N/A',
+          courseTitle: doubt.order?.courseTitle || doubt.order?.productName || 'N/A',
+          userId: doubt.user?._id || 'N/A',
+          userEmail: doubt.user?.email || 'N/A',
+          userName: doubt.user?.name || 'Unknown',
           status: doubt.status,
           title: doubt.title,
           date: new Date(doubt.createdAt),
         }));
         setDoubts(doubtData);
+        setTotalPages(response.data.data.totalPages || 1);
       } else {
         throw new Error(response.data.message || 'Failed to fetch doubts');
       }
     } catch (err) {
-      console.error('Doubts fetch error:', { message: err.message, status: err.status, details: err.details });
-      let errorMessage = err.message || 'Failed to load doubts';
-      if (err.status === 401) {
+      console.error('Doubts fetch error:', {
+        message: err.message,
+        status: err.response?.status,
+        details: err.response?.data
+      });
+      let errorMessage = err.response?.data?.message || err.message || 'Failed to load doubts';
+      if (err.response?.status === 401) {
         onLogout();
+        localStorage.removeItem('adminToken');
         navigate('/admin/login');
-      } else if (err.status === 404) {
-        errorMessage = 'Doubts endpoint not found. Please check server configuration.';
-      } else if (err.status === 500) {
-        errorMessage = 'Server error occurred. Please contact support.';
+        errorMessage = 'Session expired. Please log in again.';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Admin access required. Please log in with an admin account.';
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Doubts endpoint not found. Please verify: 1) Backend server is running at the correct URL (check REACT_APP_API_BASE_URL in .env). 2) /api/doubts/admin route is defined in the backend. 3) No network issues blocking the request.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please check backend logs or contact support.';
       } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to the server. Please check your network or server status.';
+        errorMessage = 'Cannot connect to the server. Ensure the backend is running on the correct port (default: 5000) and REACT_APP_API_BASE_URL is set correctly in .env.';
+      } else if (err.response?.data?.code === 'INVALID_QUERY') {
+        errorMessage = 'Invalid query parameters. Please adjust filters and try again.';
       }
       setError(errorMessage);
     } finally {
@@ -53,9 +74,14 @@ function DoubtList({ onLogout }) {
 
   useEffect(() => {
     fetchData();
-  }, [navigate, onLogout]);
+  }, [page, navigate, onLogout]);
 
-  // Skeleton Loader Component
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
+
   const SkeletonLoader = () => (
     <div className="space-y-4">
       {[...Array(3)].map((_, index) => (
@@ -73,7 +99,7 @@ function DoubtList({ onLogout }) {
     </div>
   );
 
-  // Stat Card Component
+  // eslint-disable-next-line no-unused-vars
   const StatCard = ({ icon: Icon, title, value, color }) => (
     <div className="bg-white shadow-md rounded-xl p-6 flex items-center space-x-4 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
       <div className={`p-3 rounded-full ${color} bg-opacity-10`}>
@@ -86,7 +112,6 @@ function DoubtList({ onLogout }) {
     </div>
   );
 
-  // Error Handling Component
   const ErrorDisplay = () => (
     <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
       <AlertCircle size={64} className="text-red-500 mb-4" />
@@ -111,7 +136,6 @@ function DoubtList({ onLogout }) {
     </div>
   );
 
-  // Empty State Component
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <MessageSquare size={64} className="mb-4 text-indigo-300" />
@@ -122,7 +146,28 @@ function DoubtList({ onLogout }) {
     </div>
   );
 
-  // Calculate stats for cards
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center p-4 bg-gray-50 border-t">
+      <button
+        onClick={() => handlePageChange(page - 1)}
+        disabled={page === 1}
+        className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700"
+      >
+        Previous
+      </button>
+      <span className="text-gray-600">
+        Page {page} of {totalPages}
+      </span>
+      <button
+        onClick={() => handlePageChange(page + 1)}
+        disabled={page === totalPages}
+        className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700"
+      >
+        Next
+      </button>
+    </div>
+  );
+
   const totalDoubts = doubts.length;
   const pendingDoubts = doubts.filter(d => d.status === 'pending').length;
   const resolvedDoubts = doubts.filter(d => d.status === 'resolved').length;
@@ -162,48 +207,52 @@ function DoubtList({ onLogout }) {
           ) : error ? (
             <ErrorDisplay />
           ) : doubts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doubt ID</th>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Title</th>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Name</th>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center space-x-1">
-                        <Calendar size={14} />
-                        <span>Created At</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {doubts.map(doubt => (
-                    <tr
-                      key={doubt._id}
-                      className="hover:bg-gray-50 transition-colors duration-200"
-                    >
-                      <td className="p-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {doubt.doubtId}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                        {doubt.courseTitle}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                        {doubt.userName}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                        {doubt.status.replace('_', ' ')}
-                      </td>
-                      <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(doubt.date).toLocaleString()}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doubt ID</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Title</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Name</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center space-x-1">
+                          <Calendar size={14} />
+                          <span>Created At</span>
+                        </div>
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {doubts.map(doubt => (
+                      <tr
+                        key={doubt._id}
+                        className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                        onClick={() => navigate(`/admin/doubts/${doubt._id}`)}
+                      >
+                        <td className="p-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {doubt.doubtId}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                          {doubt.courseTitle}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                          {doubt.userName}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                          {doubt.status.replace('_', ' ')}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                          {doubt.date.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls />
+            </>
           ) : (
             <EmptyState />
           )}

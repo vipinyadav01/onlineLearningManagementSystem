@@ -1,64 +1,44 @@
 import axios from 'axios';
 
-// Validate base URL
-const baseURL = import.meta.env.VITE_API_BASE_URL;
-if (!baseURL) {
-  console.error('VITE_API_BASE_URL is not defined in .env');
-}
-
-const instance = axios.create({
-  baseURL: baseURL || 'http://localhost:3000', // Fallback URL
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  timeout: 10000,
 });
 
-instance.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const adminToken = localStorage.getItem('adminToken');
+    console.log('Sending request:', {
+      url: `${config.baseURL}${config.url}`,
+      method: config.method,
+      hasToken: !!adminToken
+    });
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
     }
-
-    // Only set multipart/form-data for valid FormData
-    if (config.data instanceof FormData && config.method?.toLowerCase() !== 'get') {
-      config.headers['Content-Type'] = 'multipart/form-data';
-    }
-
     return config;
   },
-  (error) => Promise.reject(error)
-);
-
-instance.interceptors.response.use(
-  (response) => {
-    // Only reject if explicitly success: false
-    if (response.data && response.data.success === false) {
-      return Promise.reject(new Error(response.data.message || 'Operation failed'));
-    }
-    return response;
-  },
   (error) => {
-    let errorMessage = error.response?.data?.message || error.message || 'An error occurred';
-    
-    // Handle network errors specifically
-    if (!error.response && error.message.includes('Network Error')) {
-      errorMessage = 'Cannot connect to the server. Please check your network or server status.';
-    }
-
-    // Handle 401 errors: Remove token and reject
-    if (error.response?.status === 401) {
-      localStorage.removeItem('adminToken');
-      return Promise.reject(new Error('Session expired or unauthorized'));
-    }
-
-    // Standardize error format
-    return Promise.reject({
-      message: errorMessage,
-      status: error.response?.status,
-      details: process.env.NODE_ENV === 'development' ? error : undefined,
-    });
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
   }
 );
 
-export default instance;
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('Response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data
+    });
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken');
+    }
+    return Promise.reject(error);
+  }
+);
+
+
+export default api;
