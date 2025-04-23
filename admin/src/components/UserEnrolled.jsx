@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart2, Users, BookOpen, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
-import api from '../api/axios'; // Use custom Axios instance
+import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 
 function UserEnrolled({ onLogout }) {
@@ -13,11 +13,6 @@ function UserEnrolled({ onLogout }) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const response = await api.get('/orders/all-orders');
 
       if (response.data.success) {
@@ -40,11 +35,13 @@ function UserEnrolled({ onLogout }) {
       let errorMessage = err.message || 'Failed to load orders';
       if (err.status === 401) {
         onLogout();
-        navigate('/login');
+        navigate('/admin/login'); // Standardized to /admin/login
       } else if (err.status === 404) {
         errorMessage = 'Orders endpoint not found. Please check server configuration.';
       } else if (err.status === 500) {
         errorMessage = 'Server error occurred. Please contact support.';
+      } else if (err.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to the server. Please check your network or server status.';
       }
       setError(errorMessage);
     } finally {

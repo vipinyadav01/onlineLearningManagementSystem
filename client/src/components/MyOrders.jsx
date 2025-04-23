@@ -29,7 +29,13 @@ const MyOrders = () => {
         }
       } catch (err) {
         console.error('Error fetching orders:', err);
-        setError(err.response?.data?.message || 'Failed to load orders');
+        if (err.response?.status === 401) {
+          setError('Session expired. Please log in again.');
+          localStorage.removeItem('token');
+          setTimeout(() => navigate('/login'), 1500);
+        } else {
+          setError(err.response?.data?.message || 'Failed to load orders');
+        }
       } finally {
         setLoading(false);
       }
@@ -41,7 +47,20 @@ const MyOrders = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
+        <div className="animate-pulse space-y-6 max-w-4xl w-full px-4">
+          <div className="h-10 bg-slate-800 rounded w-1/4"></div>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-slate-800 p-6 rounded-xl space-y-4">
+              <div className="h-6 bg-slate-700 rounded w-3/4"></div>
+              <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-4 bg-slate-700 rounded"></div>
+                <div className="h-4 bg-slate-700 rounded"></div>
+              </div>
+              <div className="h-8 bg-slate-700 rounded w-1/3"></div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -49,8 +68,8 @@ const MyOrders = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Error</h2>
+        <div className="text-center bg-slate-800 p-8 rounded-xl border border-slate-700 max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-4 text-slate-200">Error</h2>
           <p className="text-slate-400 mb-6">{error}</p>
           <button
             onClick={() => navigate('/courses')}
@@ -71,7 +90,7 @@ const MyOrders = () => {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -90,10 +109,10 @@ const MyOrders = () => {
           ) : (
             <div className="space-y-6">
               {orders.map((order) => (
-                <motion.div 
-                  key={order._id} 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
+                <motion.div
+                  key={order._id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                   className="bg-slate-800 p-6 rounded-xl border border-slate-700"
                 >
@@ -101,17 +120,19 @@ const MyOrders = () => {
                     <div>
                       <h2 className="text-xl font-semibold">{order.courseTitle || 'Unknown Course'}</h2>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                        <p className="text-slate-400 text-sm">Order ID: {order.orderId}</p>
+                        <p className="text-slate-400 text-sm">Order ID: {order.orderId || order._id}</p>
                         {order.paymentId && <p className="text-slate-400 text-sm">Payment ID: {order.paymentId}</p>}
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0 ${
-                      order.status === 'Success'
-                        ? 'bg-green-500/20 text-green-400'
-                        : order.status === 'Failed'
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0 ${
+                        order.status === 'Success'
+                          ? 'bg-green-500/20 text-green-400'
+                          : order.status === 'Failed'
                           ? 'bg-red-500/20 text-red-400'
                           : 'bg-yellow-500/20 text-yellow-400'
-                    }`}>
+                      }`}
+                    >
                       {order.status}
                     </span>
                   </div>
@@ -147,20 +168,28 @@ const MyOrders = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex justify-between items-center">
-                    <Link 
-                      to={`/courses/${order.courseId}`} 
+                  <div className="mt-6 flex flex-wrap gap-4 items-center">
+                    <Link
+                      to={`/courses/${order.courseId}`}
                       className="text-teal-400 hover:underline font-medium"
                     >
                       View Course Details
                     </Link>
                     {order.status === 'Success' && (
-                      <Link 
-                        to={`/courses/${order.courseId}/learn`} 
-                        className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Start Learning
-                      </Link>
+                      <>
+                        <Link
+                          to={`/courses/${order.courseId}/learn`}
+                          className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Start Learning
+                        </Link>
+                        <Link
+                          to={`/doubts/create?orderId=${order._id}`}
+                          className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Submit Doubt
+                        </Link>
+                      </>
                     )}
                   </div>
                 </motion.div>

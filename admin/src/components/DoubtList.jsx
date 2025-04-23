@@ -13,11 +13,6 @@ function DoubtList({ onLogout }) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const response = await api.get('/doubts/admin');
 
       if (response.data.success) {
@@ -47,6 +42,8 @@ function DoubtList({ onLogout }) {
         errorMessage = 'Doubts endpoint not found. Please check server configuration.';
       } else if (err.status === 500) {
         errorMessage = 'Server error occurred. Please contact support.';
+      } else if (err.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to the server. Please check your network or server status.';
       }
       setError(errorMessage);
     } finally {
@@ -133,7 +130,6 @@ function DoubtList({ onLogout }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6">
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard
             icon={MessageSquare}
@@ -154,14 +150,11 @@ function DoubtList({ onLogout }) {
             color="text-emerald-600"
           />
         </div>
-
-        {/* Doubt Details */}
         <div className="bg-white shadow-md rounded-xl overflow-hidden">
           <div className="p-4 bg-gray-50 border-b flex items-center space-x-2">
             <MessageSquare size={20} className="text-indigo-600" />
             <h2 className="text-lg font-semibold text-gray-800">Doubt Details</h2>
           </div>
-
           {loading ? (
             <div className="p-4">
               <SkeletonLoader />

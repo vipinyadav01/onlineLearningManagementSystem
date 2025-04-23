@@ -10,6 +10,6 @@ router.get('/my-orders/:orderId', authMiddleware, orderController.getSingleOrder
 
 router.get('/my-orders/:orderId/:paymentId', authMiddleware, orderController.getOrderWithPayment);
 
-router.get('/all-orders', authMiddleware, adminMiddleware, orderController.getAllOrders);
+router.get('/all-orders', adminMiddleware, orderController.getAllOrders);
 
 module.exports = router;

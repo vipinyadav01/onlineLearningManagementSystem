@@ -22,11 +22,6 @@ const StatsPanel = () => {
       setRetrying(false);
       setRetryAttempts(retries);
 
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       const response = await api.get(`/doubts/admin/stats?timeRange=${timeRange}`);
 
       if (response.data.success) {
@@ -49,7 +44,7 @@ const StatsPanel = () => {
       } else if (err.status === 404) {
         errorMessage = 'Statistics endpoint not found. Please check the server configuration.';
       } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to the server. Please check if the backend is running.';
+        errorMessage = 'Cannot connect to the server. Please check your network or server status.';
       }
 
       if (retries > 0) {

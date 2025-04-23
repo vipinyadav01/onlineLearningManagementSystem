@@ -55,6 +55,8 @@ exports.getUserOrders = async (req, res) => {
 
 exports.getAllOrders = async (req, res) => {
   try {
+    console.log("Here in order controller")
+
     const orders = await Order.find({})
       .populate({
         path: 'courseId',
@@ -66,6 +68,7 @@ exports.getAllOrders = async (req, res) => {
       })
       .sort({ createdAt: -1 })
       .lean();
+
 
     const transformedOrders = orders.map(order => {
       if (!order.courseId) {

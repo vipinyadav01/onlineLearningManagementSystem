@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Validate base URL
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+if (!baseURL) {
+  console.error('VITE_API_BASE_URL is not defined in .env');
+}
+
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: baseURL || 'http://localhost:3000', // Fallback URL
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,7 +20,8 @@ instance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (config.data instanceof FormData) {
+    // Only set multipart/form-data for valid FormData
+    if (config.data instanceof FormData && config.method?.toLowerCase() !== 'get') {
       config.headers['Content-Type'] = 'multipart/form-data';
     }
 
@@ -32,9 +39,14 @@ instance.interceptors.response.use(
     return response;
   },
   (error) => {
-    const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+    let errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+    
+    // Handle network errors specifically
+    if (!error.response && error.message.includes('Network Error')) {
+      errorMessage = 'Cannot connect to the server. Please check your network or server status.';
+    }
 
-    // Handle 401 errors: Remove token but let components handle navigation
+    // Handle 401 errors: Remove token and reject
     if (error.response?.status === 401) {
       localStorage.removeItem('adminToken');
       return Promise.reject(new Error('Session expired or unauthorized'));
