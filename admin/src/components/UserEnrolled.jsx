@@ -4,12 +4,12 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function UserEnrolled({ onLogout }) {
-  const [enrollments, setEnrollments] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const fetchEnrollments = async () => {
+  const fetchOrders = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -19,42 +19,61 @@ function UserEnrolled({ onLogout }) {
       }
 
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/admin/dashboard-stats`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/orders/all-orders`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
-      const enrollmentData = response.data.stats.topCourses.map((course, index) => ({
-        id: `${course._id}-${index}`,
-        course: course._id,
-        totalEnrollments: course.totalEnrollments,
-        date: new Date()
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to fetch orders');
+      }
+
+      // Transform orders data
+      const orderData = response.data.orders.map(order => ({
+        _id: order._id,
+        orderId: order.orderId,
+        courseId: order.courseId,
+        courseTitle: order.courseTitle,
+        userId: order.userId,
+        userEmail: order.userEmail,
+        userName: order.userName,
+        date: new Date(order.createdAt),
       }));
-      
-      setEnrollments(enrollmentData);
+
+      setOrders(orderData);
     } catch (error) {
-      if (error.response?.status === 401) {
+      console.error('Error fetching orders:', { message: error.message, response: error.response?.data });
+      let errorMessage = 'Failed to load orders. Please try again.';
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        errorMessage = 'Session expired or unauthorized. Please log in again.';
         onLogout();
         navigate('/login');
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Orders endpoint not found. Please check server configuration.';
+      } else if (error.response?.status === 500) {
+        errorMessage = error.response.data.message || 'Server error occurred.';
+      } else if (error.message === 'No authentication token found') {
+        errorMessage = 'No authentication token found. Please log in.';
+        navigate('/login');
       }
-      setError(error.response?.data?.message || 'Failed to load enrollments');
-      console.error('Error fetching enrollments:', error);
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEnrollments();
+    fetchOrders();
   }, [navigate, onLogout]);
 
   // Skeleton Loader Component
   const SkeletonLoader = () => (
     <div className="space-y-4">
       {[...Array(3)].map((_, index) => (
-        <div 
-          key={index} 
+        <div
+          key={index}
           className="bg-white shadow-md rounded-xl p-4 animate-pulse flex items-center space-x-4"
         >
           <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
@@ -85,16 +104,16 @@ function UserEnrolled({ onLogout }) {
     <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
       <AlertCircle size={64} className="text-red-500 mb-4" />
       <h2 className="text-xl font-semibold text-gray-800">Something Went Wrong</h2>
-      <p className="text-gray-600 max-w-md">{error || 'Unable to load enrollments'}</p>
+      <p className="text-gray-600 max-w-md">{error}</p>
       <div className="flex space-x-4">
-        <button 
-          onClick={fetchEnrollments}
+        <button
+          onClick={fetchOrders}
           className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <RefreshCw size={16} />
           <span>Retry</span>
         </button>
-        <button 
+        <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
         >
@@ -109,13 +128,17 @@ function UserEnrolled({ onLogout }) {
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <BookOpen size={64} className="mb-4 text-indigo-300" />
-      <h2 className="text-xl font-semibold text-gray-800">No Enrollments Found</h2>
+      <h2 className="text-xl font-semibold text-gray-800">No Orders Found</h2>
       <p className="text-gray-600 max-w-md mt-2">
-        It looks like there are no course enrollments at the moment. 
-        New enrollments will appear here as they occur.
+        It looks like there are no orders at the moment. New orders will appear here as they occur.
       </p>
     </div>
   );
+
+  // Calculate stats for cards
+  const totalOrders = orders.length;
+  const uniqueUsers = [...new Set(orders.map(order => order.userId))].length;
+  const uniqueCourses = [...new Set(orders.map(order => order.courseId))].length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -123,31 +146,31 @@ function UserEnrolled({ onLogout }) {
       <div className="container mx-auto px-4 py-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <StatCard 
-            icon={Users} 
-            title="Total Enrollments" 
-            value={enrollments.reduce((sum, e) => sum + (e.totalEnrollments || 0), 0)} 
+          <StatCard
+            icon={Users}
+            title="Total Orders"
+            value={totalOrders}
             color="text-indigo-600"
           />
-          <StatCard 
-            icon={BookOpen} 
-            title="Unique Courses" 
-            value={enrollments.length} 
+          <StatCard
+            icon={BookOpen}
+            title="Unique Courses"
+            value={uniqueCourses}
             color="text-emerald-600"
           />
-          <StatCard 
-            icon={Users} 
-            title="Top Course Enrollments" 
-            value={enrollments[0]?.totalEnrollments || 0} 
+          <StatCard
+            icon={Users}
+            title="Unique Users"
+            value={uniqueUsers}
             color="text-purple-600"
           />
         </div>
 
-        {/* Enrollment Details */}
+        {/* Order Details */}
         <div className="bg-white shadow-md rounded-xl overflow-hidden">
           <div className="p-4 bg-gray-50 border-b flex items-center space-x-2">
             <BookOpen size={20} className="text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Enrollment Details</h2>
+            <h2 className="text-lg font-semibold text-gray-800">Order Details</h2>
           </div>
 
           {/* Conditional Rendering */}
@@ -157,35 +180,43 @@ function UserEnrolled({ onLogout }) {
             </div>
           ) : error ? (
             <ErrorDisplay />
-          ) : enrollments.length > 0 ? (
+          ) : orders.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course ID</th>
-                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Enrollments</th>
+                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Title</th>
+                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Name</th>
+                    <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Email</th>
                     <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div className="flex items-center space-x-1">
                         <Calendar size={14} />
-                        <span>Last Updated</span>
+                        <span>Order Date</span>
                       </div>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {enrollments.map(enrollment => (
-                    <tr 
-                      key={enrollment.id} 
+                  {orders.map(order => (
+                    <tr
+                      key={order._id}
                       className="hover:bg-gray-50 transition-colors duration-200"
                     >
                       <td className="p-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {enrollment.course}
+                        {order.orderId}
                       </td>
                       <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                        {enrollment.totalEnrollments}
+                        {order.courseTitle}
                       </td>
                       <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(enrollment.date).toLocaleString()}
+                        {order.userName}
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.userEmail}
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(order.date).toLocaleString()}
                       </td>
                     </tr>
                   ))}

@@ -6,13 +6,12 @@ const DoubtForm = () => {
   const [authStatus, setAuthStatus] = useState('checking');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [courses, setCourses] = useState([]);
+  const [orders, setOrders] = useState([]);
   
   const [doubt, setDoubt] = useState({
     title: '',
     description: '',
-    courseId: '',
-    courseTitle: '',
+    orderId: '',
     attachments: [],
   });
   
@@ -46,24 +45,14 @@ const DoubtForm = () => {
             
             if (ordersResponse.data.success) {
               const userOrders = ordersResponse.data.orders || [];
-
-              const userCourses = userOrders
-                .filter(order => order.status === 'Success')
-                .map(order => ({
-                  _id: order.courseId,  
-                  title: order.courseTitle,  
-                  orderId: order.orderId  
-                }))
-                .filter((course, index, self) => 
-                  index === self.findIndex((c) => c._id === course._id)
-                );
-              setCourses(userCourses);
+              setOrders(userOrders.filter(order => order.status === 'Success'));
             } else {
               console.error('Failed to get orders:', ordersResponse.data.message);
+              setError('Failed to load orders, but you can still submit a doubt.');
             }
-          } catch (courseError) {
-            console.error('Failed to fetch courses:', courseError);
-            setError('Failed to load courses, but you can still submit a doubt.');
+          } catch (orderError) {
+            console.error('Failed to fetch orders:', orderError);
+            setError('Failed to load orders, but you can still submit a doubt.');
           }
         }
       } catch (error) {
@@ -87,19 +76,10 @@ const DoubtForm = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'courseId') {
-      const selectedCourse = courses.find(course => course._id === value);
-      setDoubt((prev) => ({
-        ...prev,
-        courseId: value,
-        courseTitle: selectedCourse?.title || '',
-      }));
-    } else {
-      setDoubt((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setDoubt((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleFileChange = (e) => {
@@ -129,8 +109,7 @@ const DoubtForm = () => {
       const formData = new FormData();
       formData.append('title', doubt.title);
       formData.append('description', doubt.description);
-      formData.append('courseId', doubt.courseId);
-      formData.append('courseTitle', doubt.courseTitle);
+      formData.append('orderId', doubt.orderId);
       
       if (doubt.attachments && doubt.attachments.length > 0) {
         Array.from(doubt.attachments).forEach((file) => {
@@ -150,7 +129,7 @@ const DoubtForm = () => {
       }
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/doubt/create`,  // Updated endpoint
+        `${import.meta.env.VITE_API_BASE_URL}/doubts`,
         formData,
         {
           headers: {
@@ -165,8 +144,7 @@ const DoubtForm = () => {
         setDoubt({
           title: '',
           description: '',
-          courseId: '',
-          courseTitle: '',
+          orderId: '',
           attachments: [],
         });
         const fileInput = document.getElementById('attachments');
@@ -174,7 +152,7 @@ const DoubtForm = () => {
       }
     } catch (error) {
       console.error('Submit error:', error);
-      if (error.message === 'Authentication failed' || error.response?.status === 401) {
+      if (error.response?.status === 401 || error.message === 'Authentication failed') {
         setError('Session expired. Please log in again.');
         localStorage.removeItem('token');
         setAuthStatus('unauthenticated');
@@ -187,7 +165,6 @@ const DoubtForm = () => {
     }
   };
 
-  // Rest of the component remains the same...
   if (loading || authStatus === 'checking') {
     return (
       <div className="flex justify-center items-center h-screen bg-slate-900">
@@ -218,12 +195,9 @@ const DoubtForm = () => {
     );
   }
 
-  // Main form (authenticated)
   return (
     <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6">
       <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700/50 backdrop-blur-sm overflow-hidden">
-        
-        {/* Form header */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-8 py-6 border-b border-slate-700/50">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,7 +208,6 @@ const DoubtForm = () => {
         </div>
         
         <div className="px-8 py-6">
-          {/* Notification area */}
           {error && (
             <div className="bg-slate-900/80 text-teal-300 px-6 py-4 rounded-lg mb-6 border border-slate-700/70 flex items-start gap-3 shadow-lg">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -254,7 +227,6 @@ const DoubtForm = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title field */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-2">
                 Title <span className="text-teal-400">*</span>
@@ -271,28 +243,28 @@ const DoubtForm = () => {
               />
             </div>
 
-            {/* Course selection */}
             <div>
-              <label htmlFor="courseId" className="block text-sm font-medium text-slate-300 mb-2">
-                Related Course
+              <label htmlFor="orderId" className="block text-sm font-medium text-slate-300 mb-2">
+                Related Order <span className="text-teal-400">*</span>
               </label>
               <div className="relative">
                 <select
-                  id="courseId"
-                  name="courseId"
-                  value={doubt.courseId}
+                  id="orderId"
+                  name="orderId"
+                  value={doubt.orderId}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 appearance-none transition-all"
                 >
-                  <option value="">Select a course (optional)</option>
-                  {courses.length > 0 ? (
-                    courses.map((course, index) => (
-                      <option key={course._id || index} value={course._id}>
-                        {course.title || (course._id && typeof course._id === 'string' ? `Course ID: ${course._id.substring(0, 6)}...` : 'Unnamed Course')}
+                  <option value="">Select an order</option>
+                  {orders.length > 0 ? (
+                    orders.map((order, index) => (
+                      <option key={order._id || index} value={order._id}>
+                        {order.orderNumber} - {order.productName || order.courseTitle || 'Unnamed Order'}
                       </option>
                     ))
                   ) : (
-                    <option value="" disabled>No courses available</option>
+                    <option value="" disabled>No orders available</option>
                   )}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
@@ -301,17 +273,8 @@ const DoubtForm = () => {
                   </svg>
                 </div>
               </div>
-              {doubt.courseTitle && (
-                <p className="text-xs text-teal-400 mt-2 flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Selected: {doubt.courseTitle}
-                </p>
-              )}
             </div>
 
-            {/* Description field */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2">
                 Description <span className="text-teal-400">*</span>
@@ -328,7 +291,6 @@ const DoubtForm = () => {
               ></textarea>
             </div>
 
-            {/* Attachments field */}
             <div>
               <label htmlFor="attachments" className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -354,7 +316,6 @@ const DoubtForm = () => {
               </div>
             </div>
 
-            {/* Submit button */}
             <button
               type="submit"
               disabled={loading}
@@ -397,7 +358,6 @@ const DoubtForm = () => {
             </button>
           </form>
 
-          {/* User info card */}
           {user && (
             <div className="mt-8 pt-6 border-t border-slate-700/50">
               <div className="flex items-center gap-3 mb-4">

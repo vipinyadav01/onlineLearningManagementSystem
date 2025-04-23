@@ -45,7 +45,7 @@ const UserDoubts = () => {
           setError('Session expired. Please log in again.');
           setTimeout(() => navigate('/login'), 1500);
         } else {
-          setError('Failed to load your doubts. Please try again.');
+          setError(error.response?.data?.message || 'Failed to load your doubts. Please try again.');
           setAuthStatus('authenticated'); 
         }
       } finally {
@@ -113,12 +113,17 @@ const UserDoubts = () => {
                   <span
                     className={`px-4 py-1.5 rounded-full text-xs font-medium inline-flex items-center
                     ${doubt.status === 'resolved' ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30' : 
-                      doubt.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30' : 
-                      'bg-slate-600/40 text-slate-300 ring-1 ring-slate-500/30'}`}
+                      doubt.status === 'in_progress' ? 'bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30' :
+                      'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30'}`}
                   >
                     {doubt.status === 'resolved' && (
                       <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                      </svg>
+                    )}
+                    {doubt.status === 'in_progress' && (
+                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
                       </svg>
                     )}
                     {doubt.status === 'pending' && (
@@ -126,7 +131,7 @@ const UserDoubts = () => {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
                       </svg>
                     )}
-                    {doubt.status.charAt(0).toUpperCase() + doubt.status.slice(1)}
+                    {doubt.status.charAt(0).toUpperCase() + doubt.status.slice(1).replace('_', ' ')}
                   </span>
                 </div>
 
