@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart2, Users, BookOpen, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../api/axios'; // Use custom Axios instance
 import { useNavigate } from 'react-router-dom';
 
 function UserEnrolled({ onLogout }) {
@@ -9,7 +9,7 @@ function UserEnrolled({ onLogout }) {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const fetchOrders = async () => {
+  const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -18,46 +18,34 @@ function UserEnrolled({ onLogout }) {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/orders/all-orders`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await api.get('/orders/all-orders');
 
-      if (!response.data.success) {
+      if (response.data.success) {
+        const orderData = response.data.orders.map(order => ({
+          _id: order._id,
+          orderId: order.orderId,
+          courseId: order.courseId,
+          courseTitle: order.courseTitle,
+          userId: order.userId,
+          userEmail: order.userEmail,
+          userName: order.userName,
+          date: new Date(order.createdAt),
+        }));
+        setOrders(orderData);
+      } else {
         throw new Error(response.data.message || 'Failed to fetch orders');
       }
-
-      // Transform orders data
-      const orderData = response.data.orders.map(order => ({
-        _id: order._id,
-        orderId: order.orderId,
-        courseId: order.courseId,
-        courseTitle: order.courseTitle,
-        userId: order.userId,
-        userEmail: order.userEmail,
-        userName: order.userName,
-        date: new Date(order.createdAt),
-      }));
-
-      setOrders(orderData);
-    } catch (error) {
-      console.error('Error fetching orders:', { message: error.message, response: error.response?.data });
-      let errorMessage = 'Failed to load orders. Please try again.';
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        errorMessage = 'Session expired or unauthorized. Please log in again.';
+    } catch (err) {
+      console.error('Orders fetch error:', { message: err.message, status: err.status, details: err.details });
+      let errorMessage = err.message || 'Failed to load orders';
+      if (err.status === 401) {
         onLogout();
         navigate('/login');
-      } else if (error.response?.status === 404) {
+      } else if (err.status === 404) {
         errorMessage = 'Orders endpoint not found. Please check server configuration.';
-      } else if (error.response?.status === 500) {
-        errorMessage = error.response.data.message || 'Server error occurred.';
-      } else if (error.message === 'No authentication token found') {
-        errorMessage = 'No authentication token found. Please log in.';
-        navigate('/login');
+      } else if (err.status === 500) {
+        errorMessage = 'Server error occurred. Please contact support.';
       }
-
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -65,7 +53,7 @@ function UserEnrolled({ onLogout }) {
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchData();
   }, [navigate, onLogout]);
 
   // Skeleton Loader Component
@@ -107,7 +95,7 @@ function UserEnrolled({ onLogout }) {
       <p className="text-gray-600 max-w-md">{error}</p>
       <div className="flex space-x-4">
         <button
-          onClick={fetchOrders}
+          onClick={fetchData}
           className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <RefreshCw size={16} />
@@ -142,9 +130,7 @@ function UserEnrolled({ onLogout }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard
             icon={Users}
@@ -165,15 +151,11 @@ function UserEnrolled({ onLogout }) {
             color="text-purple-600"
           />
         </div>
-
-        {/* Order Details */}
         <div className="bg-white shadow-md rounded-xl overflow-hidden">
           <div className="p-4 bg-gray-50 border-b flex items-center space-x-2">
             <BookOpen size={20} className="text-indigo-600" />
             <h2 className="text-lg font-semibold text-gray-800">Order Details</h2>
           </div>
-
-          {/* Conditional Rendering */}
           {loading ? (
             <div className="p-4">
               <SkeletonLoader />

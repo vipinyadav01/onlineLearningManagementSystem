@@ -15,56 +15,61 @@ const StatsPanel = () => {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
-  const fetchStats = async (retries = 3, delay = 1000) => {
+  const fetchData = async (retries = 3, delay = 1000) => {
     try {
       setLoading(true);
       setError(null);
       setRetrying(false);
       setRetryAttempts(retries);
 
-      const response = await api.get(`/doubts/admin/stats?timeRange=${timeRange}`);
-      setStats(response.data.data);
-      setLoading(false);
-    } catch (err) {
-      console.error('StatsPanel Fetch Error:', {
-        message: err.message,
-        code: err.code,
-        status: err.response?.status,
-        data: err.response?.data,
-        url: err.config?.url,
-      });
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
 
-      let errorMessage = 'Failed to fetch statistics. Please try again later.';
-      if (err.response?.status === 401) {
-        errorMessage = 'Session expired or unauthorized. Please log in again.';
+      const response = await api.get(`/doubts/admin/stats?timeRange=${timeRange}`);
+
+      if (response.data.success) {
+        setStats(response.data.data);
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch statistics');
+      }
+    } catch (err) {
+      console.error('Stats fetch error:', { message: err.message, status: err.status, details: err.details });
+      let errorMessage = err.message || 'Failed to fetch statistics';
+      if (err.status === 401) {
         localStorage.removeItem('adminToken');
         navigate('/admin/login');
         setLoading(false);
         return;
-      } else if (err.response?.status === 400) {
-        errorMessage = err.response.data.message || 'Invalid request parameters.';
-      } else if (err.response?.status === 500) {
+      } else if (err.status === 400) {
+        errorMessage = err.message || 'Invalid request parameters.';
+      } else if (err.status === 500) {
         errorMessage = 'Server error occurred. Please contact support.';
-      } else if (err.response?.status === 404) {
+      } else if (err.status === 404) {
         errorMessage = 'Statistics endpoint not found. Please check the server configuration.';
-      } else if (err.message.includes('Cannot connect to the server')) {
-        errorMessage = 'Cannot connect to the server. Please check if the backend is running on localhost:3000.';
+      } else if (err.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to the server. Please check if the backend is running.';
       }
 
       if (retries > 0) {
         setRetrying(true);
         setRetryAttempts(retries - 1);
-        setTimeout(() => fetchStats(retries - 1, delay * 2), delay);
+        setTimeout(() => fetchData(retries - 1, delay * 2), delay);
       } else {
         setError(errorMessage);
         setRetrying(false);
+        setLoading(false);
+      }
+    } finally {
+      if (!error && retryAttempts === retries) {
         setLoading(false);
       }
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, [timeRange, navigate]);
 
   useEffect(() => {
@@ -146,7 +151,7 @@ const StatsPanel = () => {
             <p className="text-lg font-medium">{error}</p>
           </div>
           <button
-            onClick={() => fetchStats(3, 1000)}
+            onClick={() => fetchData(3, 1000)}
             disabled={retrying}
             className={`mt-6 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-xl ${
               retrying ? 'opacity-50 cursor-not-allowed' : ''

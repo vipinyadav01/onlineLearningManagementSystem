@@ -3,22 +3,21 @@ import axios from 'axios';
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
 instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('adminToken');
-    if (!token) {
-      return Promise.reject(new Error('No authentication token found'));
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    config.headers.Authorization = `Bearer ${token}`;
-    
+
     if (config.data instanceof FormData) {
       config.headers['Content-Type'] = 'multipart/form-data';
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -26,17 +25,27 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   (response) => {
-    if (response.data?.success) {
-      return response;
+    // Only reject if explicitly success: false
+    if (response.data && response.data.success === false) {
+      return Promise.reject(new Error(response.data.message || 'Operation failed'));
     }
-    return Promise.reject(new Error(response.data?.message || 'Operation failed'));
+    return response;
   },
   (error) => {
+    const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+
+    // Handle 401 errors: Remove token but let components handle navigation
     if (error.response?.status === 401) {
       localStorage.removeItem('adminToken');
-      window.location.replace('/login');
+      return Promise.reject(new Error('Session expired or unauthorized'));
     }
-    return Promise.reject(error);
+
+    // Standardize error format
+    return Promise.reject({
+      message: errorMessage,
+      status: error.response?.status,
+      details: process.env.NODE_ENV === 'development' ? error : undefined,
+    });
   }
 );
 

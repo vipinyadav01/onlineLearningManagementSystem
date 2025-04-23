@@ -10,7 +10,6 @@ import Dashboard from "./components/Dashboard"
 import UserLogins from "./components/UserLogins"
 import UserEnrolled from "./components/UserEnrolled"
 import AdminCourses from "./pages/AdminCourses"
-import DoubtList from "./components/DoubtList"
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -192,7 +191,7 @@ const App = () => {
     },
     {
       path: "/user-logins",
-      icon: <Users className="w-5 h-5" />,
+      icon: <Layers2 className="w-5 h-5" />,
       label: "User Logins",
     },
     {
@@ -204,12 +203,7 @@ const App = () => {
       path: "/admin-courses",
       icon: <Book className="w-5 h-5" />,
       label: "Courses",
-    },
-    {
-      path: "/doubt-list",
-      icon: <Layers2  className="w-5 h-5" />,
-      label: "Doubt List",
-    },
+    }
   ]
 
   if (loading) {
