@@ -46,19 +46,27 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  enrollments: [
+    {
+      courseId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course'
+      },
+      date: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ]
 });
 
 // Password hashing middleware
 UserSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified or is new
   if (!this.isModified('password')) return next();
 
   try {
-    // Generate a salt
     const salt = await bcrypt.genSalt(10);
-
-    // Hash the password along with the salt
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {

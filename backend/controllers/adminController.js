@@ -2,12 +2,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
-// Create JWT Token
+// Create JWT Token with consistent expiration time
 const createToken = (userId, role) => {
   return jwt.sign(
     { id: userId, role: role },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '24h' } // Changed to 24 hours for consistency
   );
 };
 
@@ -16,57 +16,51 @@ exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required"
-      });
+      return res.status(400).json({ success: false, message: 'Email and password required' });
     }
 
-    // Check if user exists and is an admin
-    const admin = await User.findOne({ email, isAdmin: true });
-    if (!admin) {
-      // Fallback to environment variables for super admin (optional)
-      if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-        const token = createToken('superadmin', 'admin');
-        return res.status(200).json({
-          success: true,
-          token,
-          message: "Super admin login successful"
-        });
-      }
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials or not an admin"
-      });
+    if (email !== adminEmail || password !== adminPassword) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Compare password
-    const isPasswordValid = await admin.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials"
-      });
-    }
+    // Use createToken for consistency and include an admin ID
+    const token = createToken('admin-user', 'admin');
 
-    const token = createToken(admin._id, 'admin');
-    res.status(200).json({
-      success: true,
+    // Set token expiry time for frontend reference
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    return res.status(200).json({ 
+      success: true, 
       token,
-      message: "Admin login successful"
+      expiresAt: expiresAt.toISOString()
     });
   } catch (error) {
-    console.error('Admin Login Error:', error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error"
+    console.error('💥 Admin login error:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+// Add a token verification endpoint
+exports.verifyToken = async (req, res) => {
+  try {
+    // The adminMiddleware already verified the token, so we can just return success
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Token is valid',
+      user: { role: req.user.role }
     });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return res.status(401).json({ success: false, message: 'Invalid token' });
   }
 };
 
 // Dashboard Statistics Controller
+// [Rest of your controller code remains the same]
 exports.getDashboardStats = async (req, res) => {
   try {
     const [totalUsers, recentUsers, userEnrollments] = await Promise.all([
