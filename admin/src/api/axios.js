@@ -1,58 +1,43 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
-  timeout: 10000,
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
-    'X-Role': 'admin'
+    'Content-Type': 'application/json'
   }
 });
 
-api.interceptors.request.use(
+instance.interceptors.request.use(
   (config) => {
-    const adminToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
-    
-    if (adminToken) {
-      config.headers.Authorization = `Bearer ${adminToken}`;
-    } else if (config.requiresAuth !== false) {
-      // Only reject if authentication is required for this request
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
       return Promise.reject(new Error('No authentication token found'));
     }
+    config.headers.Authorization = `Bearer ${token}`;
     
-    // Handle FormData correctly
     if (config.data instanceof FormData) {
       config.headers['Content-Type'] = 'multipart/form-data';
     }
     
-    console.log('Sending request:', {
-      url: `${config.baseURL}${config.url}`,
-      method: config.method,
-      hasToken: !!adminToken
-    });
-    
     return config;
   },
-  (error) => {
-    console.error('Request interceptor error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-api.interceptors.response.use(
-  (response) => response,
+instance.interceptors.response.use(
+  (response) => {
+    if (response.data?.success) {
+      return response;
+    }
+    return Promise.reject(new Error(response.data?.message || 'Operation failed'));
+  },
   (error) => {
-    console.error('Response error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
     if (error.response?.status === 401) {
       localStorage.removeItem('adminToken');
+      window.location.replace('/login');
     }
     return Promise.reject(error);
   }
 );
 
-export default api;
+export default instance;

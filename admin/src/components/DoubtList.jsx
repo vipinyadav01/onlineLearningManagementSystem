@@ -12,65 +12,59 @@ function DoubtList({ onLogout, role = "admin" }) {
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      console.log('Fetching doubts:', {
-        endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/${role}`,
-        page,
-        limit
-      });
-      const response = await api.get(`/doubts/${role}`, {
-        params: { page, limit }
-      });
+const fetchData = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await api.get(`/doubts/${role}`, {
+      params: { page, limit }
+    });
 
-      if (response.data.success) {
-        const doubtData = response.data.data.docs.map(doubt => ({
-          _id: doubt._id,
-          doubtId: doubt._id,
-          courseId: doubt.order?._id || 'N/A',
-          courseTitle: doubt.order?.courseTitle || doubt.order?.productName || 'N/A',
-          userId: doubt.user?._id || 'N/A',
-          userEmail: doubt.user?.email || 'N/A',
-          userName: doubt.user?.name || 'Unknown',
-          status: doubt.status,
-          title: doubt.title,
-          date: new Date(doubt.createdAt),
-        }));
-        setDoubts(doubtData);
-        setTotalPages(response.data.data.totalPages || 1);
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch doubts');
-      }
-    } catch (err) {
-      console.error('Doubts fetch error:', {
-        message: err.message,
-        status: err.response?.status,
-        details: err.response?.data
-      });
-      let errorMessage = err.response?.data?.message || err.message || 'Failed to load doubts';
-      if (err.response?.status === 401) {
-        onLogout();
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-        errorMessage = 'Session expired. Please log in again.';
-      } else if (err.response?.status === 403) {
+    const doubtData = response.data.data.docs.map(doubt => ({
+      _id: doubt._id,
+      doubtId: doubt._id,
+      courseId: doubt.order?._id || 'N/A',
+      courseTitle: doubt.order?.courseTitle || doubt.order?.productName || 'N/A',
+      userId: doubt.user?._id || 'N/A',
+      userEmail: doubt.user?.email || 'N/A',
+      userName: doubt.user?.name || 'Unknown',
+      status: doubt.status,
+      title: doubt.title,
+      date: new Date(doubt.createdAt),
+    }));
+    
+    setDoubts(doubtData);
+    setTotalPages(response.data.data.totalPages || 1);
+
+  } catch (err) {
+    console.error('Doubts fetch error:', err);
+    
+    let errorMessage;
+    switch (err.response?.status) {
+      case 403:
         errorMessage = 'Admin access required. Please log in with an admin account.';
-      } else if (err.response?.status === 404) {
-        errorMessage = `Doubts endpoint not found. Please verify: 1) Backend server is running at the correct URL (check REACT_APP_API_BASE_URL in .env). 2) /api/doubts/${role} route is defined in the backend. 3) No network issues blocking the request.`;
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Server error occurred. Please check backend logs or contact support.';
-      } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Cannot connect to the server. Ensure the backend is running on the correct port (default: 5000) and REACT_APP_API_BASE_URL is set correctly in .env.';
-      } else if (err.response?.data?.code === 'INVALID_QUERY') {
-        errorMessage = 'Invalid query parameters. Please adjust filters and try again.';
-      }
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+        break;
+      case 404:
+        errorMessage = 'Doubts endpoint not found. Please check API configuration.';
+        break;
+      case 500:
+        errorMessage = 'Server error occurred. Please try again later.';
+        break;
+      default:
+        errorMessage = err.response?.data?.message || err.message || 'Failed to load doubts';
     }
-  };
+
+    if (err.message.includes('Network Error')) {
+      errorMessage = 'Cannot connect to the server. Please check your connection.';
+    } else if (err.response?.data?.code === 'INVALID_QUERY') {
+      errorMessage = 'Invalid query parameters. Please adjust filters and try again.';
+    }
+
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();

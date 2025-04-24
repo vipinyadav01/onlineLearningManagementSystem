@@ -13,62 +13,46 @@ const StatsPanel = ({ role = 'admin' }) => {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
-  const fetchData = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Check for authentication token
-      const adminToken = localStorage.getItem('adminToken');
-      if (!adminToken) {
-        throw new Error('No authentication token found');
-      }
-      
-      console.log('Fetching stats:', {
-        endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin/stats`,
-        timeRange,
-        role 
-      });
-      const response = await api.get('/doubts/admin/stats', {
-        params: { timeRange, role },
-        headers: {
-          Authorization: `Bearer ${adminToken}`
-        }
-      });
+const fetchData = React.useCallback(async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    console.log('Fetching stats:', {
+      endpoint: `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/doubts/admin/stats`,
+      timeRange,
+      role 
+    });
 
-      if (response.data.success) {
-        setStats(response.data.data);
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch statistics');
-      }
-    } catch (err) {
-      console.error('Stats fetch error:', {
-        message: err.message,
-        status: err.response?.status,
-        details: err.response?.data
-      });
-      let errorMessage = err.response?.data?.message || err.message || 'Failed to fetch statistics';
-      if (err.message === 'No authentication token found') {
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-        errorMessage = 'Authentication required. Please log in to continue.';
-      } else if (err.response?.status === 401) {
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-        errorMessage = 'Session expired. Please log in again.';
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Admin access required. Please log in with an admin account.';
-      } else if (err.response?.status === 400 && err.response?.data?.code === 'INVALID_TIME_RANGE') {
-        errorMessage = 'Invalid time range selected. Please choose a valid option.';
-      } else if (err.response?.status === 404) {
-        errorMessage = 'Stats endpoint not found. Please verify: 1) Backend server is running at the correct URL (check VITE_API_BASE_URL in .env). 2) /api/doubts/admin/stats route is defined in the backend. 3) No network issues blocking the request.';
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Server error occurred. Please check backend logs or contact support.';
-      }
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+    const response = await api.get('/doubts/admin/stats', {
+      params: { timeRange, role }
+    });
+
+    setStats(response.data.data);
+
+  } catch (err) {
+    console.error('Stats fetch error:', {
+      message: err.message,
+      status: err.response?.status,
+      details: err.response?.data
+    });
+
+    let errorMessage = err.response?.data?.message || err.message || 'Failed to fetch statistics';
+
+    if (err.response?.status === 403) {
+      errorMessage = 'Admin access required. Please log in with an admin account.';
+    } else if (err.response?.status === 400 && err.response?.data?.code === 'INVALID_TIME_RANGE') {
+      errorMessage = 'Invalid time range selected. Please choose a valid option.';
+    } else if (err.response?.status === 404) {
+      errorMessage = 'Stats endpoint not found. Please verify: 1) Backend server is running at the correct URL (check VITE_API_BASE_URL in .env). 2) /api/doubts/admin/stats route is defined in the backend. 3) No network issues blocking the request.';
+    } else if (err.response?.status === 500) {
+      errorMessage = 'Server error occurred. Please check backend logs or contact support.';
     }
-  }, [timeRange, navigate, role]);
+
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+}, [timeRange, role]);
 
   useEffect(() => {
     // Check for token before fetching data

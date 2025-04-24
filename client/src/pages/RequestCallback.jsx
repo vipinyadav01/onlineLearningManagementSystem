@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, Mail, User, Clock, MessageSquare, CheckCircle } from 'lucide-react';
 
 const RequestCallback = () => {
@@ -12,6 +12,16 @@ const RequestCallback = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [result, setResult] = useState('');
+  const [messageInterval, setMessageInterval] = useState(null);
+
+  useEffect(() => {
+    // Cleanup interval on component unmount
+    return () => {
+      if (messageInterval) {
+        clearInterval(messageInterval);
+      }
+    };
+  }, [messageInterval]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,42 +41,45 @@ const RequestCallback = () => {
       "Connecting to our servers..."
     ];
     
-    // Display progress messages with delay
     let messageIndex = 0;
-    const messageInterval = setInterval(() => {
+    const interval = setInterval(() => {
       if (messageIndex < progressMessages.length) {
         setResult(progressMessages[messageIndex]);
         messageIndex++;
       } else {
-        clearInterval(messageInterval);
+        clearInterval(interval);
       }
     }, 800);
     
+    setMessageInterval(interval);
+    
     try {
-      const formDataToSubmit = new FormData();
+      // Create object instead of FormData
+      const dataToSubmit = {
+        access_key: "3eecb045-7326-4d75-b72b-a939051dc170",
+        subject: "New Callback Request from TechBits Website",
+        from_name: "TechBits Website",
+        reply_to: formData.email,
+        ...formData,
+        botcheck: ""
+      };
       
-      // Append form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        formDataToSubmit.append(key, value);
-      });
-      
-      // Append required Web3Forms fields
-      formDataToSubmit.append("access_key", "3eecb045-7326-4d75-b72b-a939051dc170");
-      formDataToSubmit.append("subject", "New Callback Request from TechBits Website");
-      formDataToSubmit.append("from_name", "TechBits Website");
-      formDataToSubmit.append("reply_to", formData.email);
-      formDataToSubmit.append("botcheck", "");
-      
-      // Add artificial delay for better UX
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
-        body: formDataToSubmit
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify(dataToSubmit)
       });
 
       const data = await response.json();
-      clearInterval(messageInterval);
+      
+      if (messageInterval) {
+        clearInterval(messageInterval);
+      }
 
       if (data.success) {
         setResult("Success! Preparing your confirmation...");
@@ -92,6 +105,7 @@ const RequestCallback = () => {
     }
   };
 
+  // Rest of the component remains the same...
   return (
     <div className="min-h-screen bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
