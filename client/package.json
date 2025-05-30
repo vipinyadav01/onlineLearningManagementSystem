@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@capacitor/cli": "^6.2.0",
-    "@capacitor/core": "^6.2.0",
+    "@capacitor/core": "^6.2.1",
     "@react-spring/web": "^9.7.5",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.8.4",
