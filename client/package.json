@@ -18,7 +18,7 @@
     "cloudinary": "^2.6.0",
     "dotenv": "^16.4.5",
     "framer-motion": "^11.18.2",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^0.509.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.4.0"
