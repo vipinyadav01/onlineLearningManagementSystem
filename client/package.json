@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/cli": "^6.2.0",
+    "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.0",
     "@react-spring/web": "^9.7.5",
     "@types/react-router-dom": "^5.3.3",
