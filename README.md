@@ -82,6 +82,13 @@ RAZORPAY_KEY_SECRET=your_key_secret
 
 ### 3. Run the Application
 
+#### Admin Dashboard
+```bash
+cd admin
+npm install
+npm run dev
+```
+
 #### Backend (Node.js/Express)
 
 ```bash
