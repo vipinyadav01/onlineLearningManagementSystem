@@ -5,6 +5,46 @@ import { Users, Clock, BookOpen, TrendingUp, AlertCircle, BarChart2, List } from
 import DoubtList from './DoubtList';
 import StatsPanel from './StatsPanel';
 
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      return Promise.reject(new Error('No authentication token found'));
+    }
+    config.headers.Authorization = `Bearer ${token}`;
+    
+    if (config.data instanceof FormData) {
+      config.headers['Content-Type'] = 'multipart/form-data';
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+instance.interceptors.response.use(
+  (response) => {
+    if (response.data?.success) {
+      return response;
+    }
+    return Promise.reject(new Error(response.data?.message || 'Operation failed'));
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken');
+      window.location.replace('/login');
+    }
+    return Promise.reject(error);
+  }
+);
+
 const Dashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('doubts');
   const [loading, setLoading] = useState(false);
@@ -27,35 +67,20 @@ const Dashboard = ({ onLogout }) => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('adminToken');
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/admin/dashboard-stats`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await instance.get('/admin/dashboard-stats');
 
-      if (response.data.success) {
-        const hour = new Date().getHours();
-        const timeBasedGreeting =
-          hour < 12 ? 'Good morning' :
-          hour < 18 ? 'Good afternoon' :
-          'Good evening';
+      const hour = new Date().getHours();
+      const timeBasedGreeting =
+        hour < 12 ? 'Good morning' :
+        hour < 18 ? 'Good afternoon' :
+        'Good evening';
 
-        setWelcomeMessage(`${timeBasedGreeting}, Admin! 👋`);
-        setStats(response.data.stats);
-      }
+      setWelcomeMessage(`${timeBasedGreeting}, Admin! 👋`);
+      setStats(response.data.stats);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      if (error.response?.status === 401) {
-        if (typeof onLogout === 'function') {
-          onLogout();
-        }
-        localStorage.removeItem('adminToken');
-        navigate('/admin/login');
-      }
-      setError(error.response?.data?.message || 'Failed to load dashboard statistics');
+      setError(error.message || 'Failed to load dashboard statistics');
     } finally {
       setLoading(false);
     }

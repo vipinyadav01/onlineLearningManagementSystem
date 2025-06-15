@@ -4,8 +4,7 @@ const orderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
-    courseTitle: { type: String, required: true },
-    orderId: { type: String, required: true, unique: true }, // Unique index is sufficient
+    orderId: { type: String, required: true, unique: true },
     paymentId: { type: String, unique: true, sparse: true },
     amount: { type: Number, required: true },
     status: {
@@ -24,9 +23,9 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-// Keep other indexes as they are not duplicated
-orderSchema.index({ userId: 1 });
+// Indexes for common queries
+orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
-orderSchema.index({ createdAt: -1 });
+orderSchema.index({ orderId: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

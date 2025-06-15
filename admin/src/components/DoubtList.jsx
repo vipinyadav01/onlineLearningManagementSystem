@@ -1,353 +1,259 @@
 import React, { useState, useEffect } from 'react';
+import { BarChart2, Users, MessageSquare, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
+import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Search, Filter, RefreshCw, CheckCircle, XCircle, MessageCircle, Clock, AlertCircle } from 'lucide-react';
 
-const DoubtList = () => {
+function DoubtList({ onLogout, role = "admin" }) {
   const [doubts, setDoubts] = useState([]);
-  const [filteredDoubts, setFilteredDoubts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedDoubt, setSelectedDoubt] = useState(null);
-  const [responseText, setResponseText] = useState('');
-  const [stats, setStats] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
-  // Fetch doubts and stats
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem('adminToken');
+const fetchData = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await api.get(`/doubts/${role}`, {
+      params: { page, limit }
+    });
 
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+    const doubtData = response.data.data.docs.map(doubt => ({
+      _id: doubt._id,
+      doubtId: doubt._id,
+      courseId: doubt.order?._id || 'N/A',
+      courseTitle: doubt.order?.courseTitle || doubt.order?.productName || 'N/A',
+      userId: doubt.user?._id || 'N/A',
+      userEmail: doubt.user?.email || 'N/A',
+      userName: doubt.user?.name || 'Unknown',
+      status: doubt.status,
+      title: doubt.title,
+      date: new Date(doubt.createdAt),
+    }));
+    
+    setDoubts(doubtData);
+    setTotalPages(response.data.data.totalPages || 1);
 
-      const [doubtsRes, statsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-doubt`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/doubts/admin-stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-
-      setDoubts(doubtsRes.data.data);
-      setFilteredDoubts(doubtsRes.data.data);
-      setStats(statsRes.data.data);
-    } catch (err) {
-      console.error('Error fetching data:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-
-      let errorMessage = 'Failed to fetch data. Please try again later.';
-      if (err.response) {
-        if (err.response.status === 401) {
-          errorMessage = 'Session expired. Please log in again.';
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-        } else if (err.response.status === 500) {
-          errorMessage = err.response.data?.message || 'Server error occurred. Please contact support.';
-        } else {
-          errorMessage = err.response.data?.message || `Error: ${err.message}`;
-        }
-      } else if (err.request) {
-        errorMessage = 'No response from server. Check your network connection.';
-      }
-
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+  } catch (err) {
+    console.error('Doubts fetch error:', err);
+    
+    let errorMessage;
+    switch (err.response?.status) {
+      case 403:
+        errorMessage = 'Admin access required. Please log in with an admin account.';
+        break;
+      case 404:
+        errorMessage = 'Doubts endpoint not found. Please check API configuration.';
+        break;
+      case 500:
+        errorMessage = 'Server error occurred. Please try again later.';
+        break;
+      default:
+        errorMessage = err.response?.data?.message || err.message || 'Failed to load doubts';
     }
-  };
 
-  // Set up polling for updates
+    if (err.message.includes('Network Error')) {
+      errorMessage = 'Cannot connect to the server. Please check your connection.';
+    } else if (err.response?.data?.code === 'INVALID_QUERY') {
+      errorMessage = 'Invalid query parameters. Please adjust filters and try again.';
+    }
+
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [navigate]);
+  }, [page, navigate, onLogout, role]);
 
-  // Apply filters
-  useEffect(() => {
-    let result = doubts;
-
-    if (statusFilter !== 'all') {
-      result = result.filter((doubt) => doubt.status === statusFilter);
-    }
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (doubt) =>
-          doubt.title.toLowerCase().includes(term) ||
-          doubt.description.toLowerCase().includes(term) ||
-          (doubt.user?.name && doubt.user.name.toLowerCase().includes(term)) ||
-          (doubt.order?.orderNumber && doubt.order.orderNumber.toLowerCase().includes(term))
-      );
-    }
-
-    setFilteredDoubts(result);
-  }, [doubts, statusFilter, searchTerm]);
-
-  const handleStatusUpdate = async (doubtId, status) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL}/doubts/admin/${doubtId}`,
-        { status, response: responseText },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        const updatedDoubts = doubts.map((doubt) =>
-          doubt._id === doubtId ? response.data.data : doubt
-        );
-
-        setDoubts(updatedDoubts);
-        setSelectedDoubt(null);
-        setResponseText('');
-      }
-    } catch (err) {
-      console.error('Error updating doubt:', err);
-      setError(err.response?.data?.message || 'Failed to update doubt');
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
     }
   };
 
-  if (loading && doubts.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-6 rounded-xl mb-6 shadow-sm">
-        <div className="flex items-center">
-          <AlertCircle className="h-6 w-6 mr-3 text-red-500" />
-          <p className="font-medium">{error}</p>
-        </div>
-        <button
-          onClick={fetchData}
-          className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center"
+  const SkeletonLoader = () => (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, index) => (
+        <div
+          key={index}
+          className="bg-white shadow-md rounded-xl p-4 animate-pulse flex items-center space-x-4"
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Filters and Search */}
-      <div className="mb-6 bg-white p-6 rounded-xl shadow-md">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="relative flex-grow">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="text-indigo-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search doubts..."
-              className="pl-10 pr-4 py-3 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <Filter className="text-indigo-400 mr-2" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50"
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="resolved">Resolved</option>
-              </select>
-            </div>
-
-            <button
-              onClick={fetchData}
-              className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl transition-colors shadow-sm"
-            >
-              <RefreshCw className="mr-2 h-5 w-5" /> Refresh
-            </button>
+          <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-gray-200 rounded-xl w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded-xl w-1/2"></div>
           </div>
         </div>
-      </div>
-
-      {/* Stats Summary */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-            <h3 className="text-gray-500 text-sm font-medium">Total Doubts</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">{stats.total}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-            <h3 className="text-gray-500 text-sm font-medium">Pending</h3>
-            <p className="text-3xl font-bold text-amber-600 mt-2">{stats.pending}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-            <h3 className="text-gray-500 text-sm font-medium">Resolved</h3>
-            <p className="text-3xl font-bold text-emerald-600 mt-2">{stats.resolved}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-            <h3 className="text-gray-500 text-sm font-medium">Resolution Rate</h3>
-            <p className="text-3xl font-bold text-indigo-600 mt-2">{stats.resolutionRate}%</p>
-          </div>
-        </div>
-      )}
-
-      {/* Doubts List */}
-      <div className="bg-white shadow-md rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDoubts.map((doubt) => (
-                <tr key={doubt._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{doubt.title}</div>
-                    <div className="text-sm text-gray-500 line-clamp-1">{doubt.description}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{doubt.user?.name}</div>
-                    <div className="text-sm text-gray-500">{doubt.user?.email}</div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{doubt.order?.orderNumber || 'N/A'}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${doubt.status === 'resolved' ? 'bg-emerald-100 text-emerald-800' : 
-                        doubt.status === 'in_progress' ? 'bg-indigo-100 text-indigo-800' : 
-                        'bg-amber-100 text-amber-800'}`}
-                    >
-                      {doubt.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {new Date(doubt.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedDoubt(doubt)}
-                      className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 transition-colors"
-                    >
-                      <MessageCircle className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Response Modal */}
-      {selectedDoubt && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start">
-                <h3 className="text-xl font-semibold text-gray-900">Respond to Doubt</h3>
-                <button
-                  onClick={() => {
-                    setSelectedDoubt(null);
-                    setResponseText('');
-                  }}
-                  className="text-gray-400 hover:text-gray-500 p-2 rounded-full hover:bg-gray-100"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="mt-6 space-y-6">
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-semibold text-gray-800 mb-2">Title: {selectedDoubt.title}</h4>
-                  <p className="text-gray-600">{selectedDoubt.description}</p>
-                </div>
-
-                {selectedDoubt.attachments?.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Attachments:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedDoubt.attachments.map((file, index) => (
-                        <a
-                          key={index}
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors"
-                        >
-                          {file.filename || `Attachment ${index + 1}`}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label htmlFor="response" className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Response
-                  </label>
-                  <textarea
-                    id="response"
-                    rows="4"
-                    className="w-full border border-gray-200 rounded-xl py-3 px-4 text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={responseText}
-                    onChange={(e) => setResponseText(e.target.value)}
-                    placeholder="Type your response here..."
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => handleStatusUpdate(selectedDoubt._id, 'pending')}
-                    className={`inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors ${selectedDoubt.status === 'pending' ? 'bg-gray-100' : ''}`}
-                  >
-                    <Clock className="mr-2 h-4 w-4" /> Keep as Pending
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate(selectedDoubt._id, 'in_progress')}
-                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors ${selectedDoubt.status === 'in_progress' ? 'bg-indigo-700' : ''}`}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" /> Mark In Progress
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate(selectedDoubt._id, 'resolved')}
-                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors ${selectedDoubt.status === 'resolved' ? 'bg-emerald-700' : ''}`}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" /> Mark Resolved
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      ))}
     </div>
   );
-};
+
+  // eslint-disable-next-line no-unused-vars
+  const StatCard = ({ icon: Icon, title, value, color }) => (
+    <div className="bg-white shadow-md rounded-xl p-6 flex items-center space-x-4 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+      <div className={`p-3 rounded-full ${color} bg-opacity-10`}>
+        <Icon className={`${color} w-6 h-6`} />
+      </div>
+      <div>
+        <p className="text-gray-500 text-sm">{title}</p>
+        <p className="text-2xl font-semibold text-gray-800 mt-1">{value}</p>
+      </div>
+    </div>
+  );
+
+  const ErrorDisplay = () => (
+    <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
+      <AlertCircle size={64} className="text-red-500 mb-4" />
+      <h2 className="text-xl font-semibold text-gray-800">Something Went Wrong</h2>
+      <p className="text-gray-600 max-w-md">{error}</p>
+      <div className="flex space-x-4">
+        <button
+          onClick={fetchData}
+          className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          <RefreshCw size={16} />
+          <span>Retry</span>
+        </button>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          <BarChart2 size={16} />
+          <span>Dashboard</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <MessageSquare size={64} className="mb-4 text-indigo-300" />
+      <h2 className="text-xl font-semibold text-gray-800">No Doubts Found</h2>
+      <p className="text-gray-600 max-w-md mt-2">
+        It looks like there are no doubts at the moment. New doubts will appear here as they are submitted.
+      </p>
+    </div>
+  );
+
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center p-4 bg-gray-50 border-t">
+      <button
+        onClick={() => handlePageChange(page - 1)}
+        disabled={page === 1}
+        className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700"
+      >
+        Previous
+      </button>
+      <span className="text-gray-600">
+        Page {page} of {totalPages}
+      </span>
+      <button
+        onClick={() => handlePageChange(page + 1)}
+        disabled={page === totalPages}
+        className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700"
+      >
+        Next
+      </button>
+    </div>
+  );
+
+  const totalDoubts = doubts.length;
+  const pendingDoubts = doubts.filter(d => d.status === 'pending').length;
+  const resolvedDoubts = doubts.filter(d => d.status === 'resolved').length;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatCard
+            icon={MessageSquare}
+            title="Total Doubts"
+            value={totalDoubts}
+            color="text-indigo-600"
+          />
+          <StatCard
+            icon={MessageSquare}
+            title="Pending Doubts"
+            value={pendingDoubts}
+            color="text-amber-600"
+          />
+          <StatCard
+            icon={MessageSquare}
+            title="Resolved Doubts"
+            value={resolvedDoubts}
+            color="text-emerald-600"
+          />
+        </div>
+        <div className="bg-white shadow-md rounded-xl overflow-hidden">
+          <div className="p-4 bg-gray-50 border-b flex items-center space-x-2">
+            <MessageSquare size={20} className="text-indigo-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Doubt Details</h2>
+          </div>
+          {loading ? (
+            <div className="p-4">
+              <SkeletonLoader />
+            </div>
+          ) : error ? (
+            <ErrorDisplay />
+          ) : doubts.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doubt ID</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Title</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Name</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center space-x-1">
+                          <Calendar size={14} />
+                          <span>Created At</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {doubts.map(doubt => (
+                      <tr
+                        key={doubt._id}
+                        className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                        onClick={() => navigate(`/admin/doubts/${doubt._id}`)}
+                      >
+                        <td className="p-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {doubt.doubtId}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                          {doubt.courseTitle}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                          {doubt.userName}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                          {doubt.status.replace('_', ' ')}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                          {doubt.date.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls />
+            </>
+          ) : (
+            <EmptyState />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default DoubtList;
