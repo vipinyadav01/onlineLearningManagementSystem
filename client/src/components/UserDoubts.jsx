@@ -15,10 +15,9 @@ import {
   File
 } from 'lucide-react';
 
-// Constants for API configuration
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-// Helper function to validate URL
 const isValidUrl = (url) => {
   try {
     new URL(url);
@@ -33,7 +32,38 @@ const UserDoubts = () => {
   const [authStatus, setAuthStatus] = useState('checking');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [missingAttachments, setMissingAttachments] = useState({}); // { [url]: true }
   const navigate = useNavigate();
+
+  // Helper to check if a URL exists
+  const checkUrlExists = async (url) => {
+    try {
+      const res = await fetch(url, { method: 'HEAD' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // Check all attachment URLs on load
+  useEffect(() => {
+    if (!doubts.length) return;
+    const checkAll = async () => {
+      const missing = {};
+      for (const doubt of doubts) {
+        if (doubt.attachments && Array.isArray(doubt.attachments)) {
+          for (const att of doubt.attachments) {
+            if (att.url && !missing[att.url]) {
+              const exists = await checkUrlExists(att.url);
+              if (!exists) missing[att.url] = true;
+            }
+          }
+        }
+      }
+      setMissingAttachments(missing);
+    };
+    checkAll();
+  }, [doubts]);
 
   const fetchDoubts = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -196,7 +226,7 @@ const UserDoubts = () => {
   const handleAttachmentClick = (event, attachment) => {
     const url = getAttachmentURL(attachment);
     const filename = getAttachmentFilename(attachment, 0);
-    
+
     if (url === '#') {
       event.preventDefault();
       return;
@@ -204,8 +234,17 @@ const UserDoubts = () => {
 
     if (getFileExtension(filename) === 'pdf' && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
+      // Try to open in Google Docs Viewer
       const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-      window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+      const win = window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+      // Fallback: If Google Docs Viewer fails, show a message and provide a download link
+      setTimeout(() => {
+        if (win && win.closed) return;
+        if (win && win.document && win.document.body && win.document.body.innerText.includes('No preview available')) {
+          alert('Preview not available. The file will be downloaded instead.');
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      }, 3000);
     }
   };
 
@@ -243,6 +282,11 @@ const UserDoubts = () => {
                   <h3 className="text-xl font-semibold text-white">
                     {doubt.title || 'Untitled Doubt'}
                   </h3>
+                  {doubt.courseTitle || doubt.order?.courseTitle || doubt.order?.productName ? (
+                    <span className="text-xs text-teal-300 font-medium mt-1 sm:mt-0 sm:ml-4">
+                      Course: {doubt.courseTitle || doubt.order?.courseTitle || doubt.order?.productName}
+                    </span>
+                  ) : null}
                   <span
                     className={`px-4 py-1.5 rounded-full text-xs font-medium inline-flex items-center ${getStatusClass(doubt.status)}`}
                   >
@@ -267,22 +311,36 @@ const UserDoubts = () => {
                         const fileIcon = getFileIcon(filename);
                         
                         return (
-                          <a
-                            key={`${doubt._id}-attachment-${index}`}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => handleAttachmentClick(e, attachment)}
-                            className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                              url === '#'
-                                ? 'bg-gray-500/10 text-gray-400 cursor-not-allowed'
-                                : 'bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 border border-teal-500/20'
-                            }`}
-                            aria-label={`Download ${filename}`}
-                          >
-                            <span className="mr-1.5">{fileIcon}</span>
-                            {filename}
-                          </a>
+                          <span key={`${doubt._id}-attachment-${index}`} className="flex items-center gap-2">
+                            {url && !missingAttachments[url] ? (
+                              <>
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => handleAttachmentClick(e, attachment)}
+                                  className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 border border-teal-500/20`}
+                                  aria-label={`Preview ${filename}`}
+                                >
+                                  <span className="mr-1.5">{fileIcon}</span>
+                                  {filename}
+                                </a>
+                                <a
+                                  href={url}
+                                  download={filename}
+                                  className="inline-flex items-center px-2 py-1 rounded bg-slate-700 text-slate-200 hover:bg-slate-600 text-xs font-medium border border-slate-600 ml-1"
+                                  aria-label={`Download ${filename}`}
+                                >
+                                  Download
+                                </a>
+                              </>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 cursor-not-allowed">
+                                <span className="mr-1.5">{fileIcon}</span>
+                                {filename} (Attachment missing or deleted)
+                              </span>
+                            )}
+                          </span>
                         );
                       })}
                     </div>
@@ -290,9 +348,16 @@ const UserDoubts = () => {
                 )}
 
                 {doubt.response && (
-                  <div className="mt-6 p-4 bg-slate-900/80 rounded-lg border-l-4 border-teal-500">
-                    <p className="text-sm font-medium text-teal-300 mb-2">Admin Response:</p>
-                    <p className="text-slate-300 leading-relaxed">{doubt.response}</p>
+                  <div className="mt-6">
+                    <div className="bg-gradient-to-br from-teal-900/80 to-slate-900/80 rounded-xl p-5 border-l-4 border-teal-400 shadow-lg flex items-start gap-3 animate-fade-in">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-300 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-teal-300 mb-1">Admin Response</p>
+                        <p className="text-slate-100 leading-relaxed text-base">{doubt.response}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 

@@ -184,13 +184,17 @@ const createDoubt = async (req, res) => {
             stream.end(file.buffer);
           });
 
-          attachments.push({
-            filename: file.originalname,
-            url: result.secure_url,
-            mimetype: file.mimetype,
-            public_id: result.public_id,
-            size: file.size,
-          });
+          if (result && result.secure_url) {
+            attachments.push({
+              filename: file.originalname,
+              url: result.secure_url,
+              mimetype: file.mimetype,
+              public_id: result.public_id,
+              size: file.size,
+            });
+          } else {
+            console.error('Cloudinary upload did not return a secure_url:', result);
+          }
         } catch (uploadError) {
           console.error('Cloudinary upload error (catch):', uploadError);
           await cleanupUploads(attachments);
@@ -303,7 +307,12 @@ const getUserDoubts = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate({
         path: 'order',
-        select: 'orderNumber productName courseTitle',
+        select: 'orderNumber productName courseId',
+        populate: {
+          path: 'courseId',
+          select: 'title',
+          options: { lean: true }
+        },
         options: { lean: true }
       })
       .select('title description status createdAt attachments response resolvedAt')
@@ -312,11 +321,13 @@ const getUserDoubts = async (req, res) => {
     const formattedDoubts = doubts.map(doubt => ({
       ...doubt,
       order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
-      attachments: doubt.attachments?.map(att => ({
-        url: att.url,
-        filename: att.filename,
-        type: att.mimetype?.split('/')[0] || 'file'
-      })) || []
+      courseTitle: doubt.order && doubt.order.courseId && doubt.order.courseId.title ? doubt.order.courseId.title : 'N/A',
+      attachments: (doubt.attachments || []).filter(att => att && att.url && typeof att.url === 'string' && att.url.startsWith('http'))
+        .map(att => ({
+          url: att.url,
+          filename: att.filename,
+          type: att.mimetype?.split('/')[0] || 'file'
+        })) || []
     }));
 
     res.json({ 
@@ -398,11 +409,13 @@ const getAllDoubtsAdmin = async (req, res) => {
         order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
         // Add courseTitle for admin panel display
         courseTitle: doubt.order && doubt.order.courseId && doubt.order.courseId.title ? doubt.order.courseId.title : 'N/A',
-        attachments: doubt.attachments?.map(att => ({
-          url: att.url,
-          filename: att.filename,
-          type: att.mimetype?.split('/')[0] || 'file'
-        })) || []
+        attachments: (doubt.attachments || []).filter(att => att && att.url && typeof att.url === 'string' && att.url.startsWith('http'))
+          .map(att => ({
+            url: att.url,
+            filename: att.filename,
+            type: att.mimetype?.split('/')[0] || 'file',
+            size: att.size
+          })) || []
       }))
     };
 
@@ -476,12 +489,13 @@ const getSingleDoubtAdmin = async (req, res) => {
       user: doubt.user || { name: 'Unknown', email: 'N/A' },
       order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
       courseTitle: doubt.order && doubt.order.courseId && doubt.order.courseId.title ? doubt.order.courseId.title : 'N/A',
-      attachments: doubt.attachments?.map(att => ({
-        url: att.url,
-        filename: att.filename,
-        type: att.mimetype?.split('/')[0] || 'file',
-        size: att.size
-      })) || []
+      attachments: (doubt.attachments || []).filter(att => att && att.url && typeof att.url === 'string' && att.url.startsWith('http'))
+        .map(att => ({
+          url: att.url,
+          filename: att.filename,
+          type: att.mimetype?.split('/')[0] || 'file',
+          size: att.size
+        })) || []
     };
 
     res.json({ 

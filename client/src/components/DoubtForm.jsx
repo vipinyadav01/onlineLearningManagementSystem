@@ -288,19 +288,26 @@ const DoubtForm = () => {
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6">
-      <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700/50 backdrop-blur-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-8 py-6 border-b border-slate-700/50">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-sm overflow-hidden animate-fade-in">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-8 py-8 border-b border-slate-700/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Submit Your Doubt
           </h2>
+          <button
+            onClick={() => navigate('/user-doubts')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors focus:ring-2 focus:ring-teal-500/40 focus:outline-none shadow-md"
+          >
+            <FileText className="h-5 w-5" />
+            View Your Doubts
+          </button>
         </div>
 
-        <div className="px-8 py-6">
+        <div className="px-8 py-8">
           {error && (
-            <div className="bg-slate-900/80 text-teal-300 px-6 py-4 rounded-lg mb-6 border border-slate-700/70 flex items-start gap-3 shadow-lg">
+            <div className="bg-slate-900/80 text-teal-300 px-6 py-4 rounded-lg mb-6 border border-slate-700/70 flex items-start gap-3 shadow-lg animate-fade-in">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -309,7 +316,7 @@ const DoubtForm = () => {
           )}
 
           {success && (
-            <div className="bg-teal-500/10 text-teal-400 px-6 py-4 rounded-lg mb-6 border border-teal-500/30 flex items-start gap-3 shadow-lg">
+            <div className="bg-teal-500/10 text-teal-400 px-6 py-4 rounded-lg mb-6 border border-teal-500/30 flex items-start gap-3 shadow-lg animate-fade-in">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -317,9 +324,9 @@ const DoubtForm = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="title" className="block text-base font-semibold text-teal-300 mb-2">
                 Title <span className="text-teal-400">*</span>
               </label>
               <input
@@ -330,13 +337,13 @@ const DoubtForm = () => {
                 onChange={handleInputChange}
                 required
                 maxLength={100}
-                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 placeholder-slate-500 transition-all"
+                className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 placeholder-slate-500 transition-all text-lg"
                 placeholder="Brief title of your doubt"
               />
             </div>
 
             <div>
-              <label htmlFor="orderId" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="orderId" className="block text-base font-semibold text-teal-300 mb-2">
                 Related Order <span className="text-teal-400">*</span>
               </label>
               <div className="relative">
@@ -347,7 +354,7 @@ const DoubtForm = () => {
                   onChange={handleInputChange}
                   required
                   disabled={orders.length === 0}
-                  className={`w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 appearance-none transition-all ${
+                  className={`w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 appearance-none transition-all text-lg ${
                     orders.length === 0 ? 'opacity-70 cursor-not-allowed' : ''
                   }`}
                 >
@@ -372,7 +379,7 @@ const DoubtForm = () => {
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="description" className="block text-base font-semibold text-teal-300 mb-2">
                 Description <span className="text-teal-400">*</span>
               </label>
               <textarea
@@ -383,19 +390,19 @@ const DoubtForm = () => {
                 required
                 rows="6"
                 maxLength={1000}
-                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 placeholder-slate-500 transition-all"
+                className="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 text-slate-200 placeholder-slate-500 transition-all text-lg"
                 placeholder="Describe your doubt in detail"
               ></textarea>
             </div>
 
             <div>
-              <label htmlFor="attachments" className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label htmlFor="attachments" className="block text-base font-semibold text-teal-300 mb-2 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
                 Attachments (Max 5 files)
               </label>
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-4 bg-slate-900/30 transition-all hover:border-teal-500/30 focus-within:border-teal-500/50">
+              <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 bg-slate-900/30 transition-all hover:border-teal-500/30 focus-within:border-teal-500/50">
                 <input
                   type="file"
                   id="attachments"
@@ -413,7 +420,7 @@ const DoubtForm = () => {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
+                          {file.name} <span className="ml-1 text-slate-400">({(file.size / 1024 / 1024).toFixed(2)}MB)</span>
                         </li>
                       ))}
                     </ul>
@@ -431,7 +438,7 @@ const DoubtForm = () => {
             <button
               type="submit"
               disabled={loading || orders.length === 0}
-              className={`w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-slate-900 font-medium py-3 px-4 rounded-lg shadow-lg transition duration-200 flex justify-center items-center transform hover:translate-y-[-2px] focus:ring-4 focus:ring-teal-500/30 focus:outline-none ${
+              className={`w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-slate-900 font-semibold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex justify-center items-center transform hover:translate-y-[-2px] focus:ring-4 focus:ring-teal-500/30 focus:outline-none text-lg ${
                 loading || orders.length === 0 ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
@@ -471,7 +478,7 @@ const DoubtForm = () => {
           </form>
 
           {user && (
-            <div className="mt-8 pt-6 border-t border-slate-700/50">
+            <div className="mt-10 pt-8 border-t border-slate-700/50 animate-fade-in">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-teal-500/10 p-2 rounded-full">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -481,31 +488,33 @@ const DoubtForm = () => {
                 <h3 className="text-lg font-medium text-slate-200">Your Information</h3>
               </div>
 
-              <div className="bg-slate-900/30 rounded-lg p-4 border border-slate-700/50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">Name</p>
-                    <p className="text-slate-300">{user.name}</p>
+              <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/60 rounded-2xl p-6 border border-slate-700/40 shadow-xl backdrop-blur-md transition-all duration-300">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1 flex items-center gap-3">
+                    <div className="bg-teal-500/20 rounded-full p-3 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Name</p>
+                      <p className="text-base font-medium text-slate-100">{user.name}</p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">Email</p>
-                    <p className="text-slate-300">{user.email}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">User ID</p>
-                    <p className="text-slate-300 font-mono text-sm">{user._id}</p>
+                  <div className="flex-1 flex items-center gap-3">
+                    <div className="bg-cyan-500/20 rounded-full p-3 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12c0 2.21-3.582 4-8 4s-8-1.79-8-4 3.582-4 8-4 8 1.79 8 4z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8v8" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Email</p>
+                      <p className="text-base font-medium text-slate-100">{user.email}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-4 text-center">
-      <button
-        onClick={() => navigate('/user-doubts')}
-        className="inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors focus:ring-2 focus:ring-teal-500/40 focus:outline-none"
-      >
-        <FileText className="h-5 w-5 mr-2" />
-        View Your Doubts
-      </button>
-    </div>
             </div>
           )}
         </div>

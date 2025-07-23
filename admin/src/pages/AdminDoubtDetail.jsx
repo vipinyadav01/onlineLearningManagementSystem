@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { AlertCircle, RefreshCw, ArrowLeft, CheckCircle, Loader2, Paperclip } from 'lucide-react';
+import { AlertCircle, RefreshCw, ArrowLeft, CheckCircle, Loader2, Paperclip, FileDown } from 'lucide-react';
 
 const statusOptions = [
   { value: 'pending', label: 'Pending' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'resolved', label: 'Resolved' },
 ];
+
+// Helper to check if a URL is valid and accessible
+const checkUrlExists = async (url) => {
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
 
 const AdminDoubtDetail = () => {
   const { id } = useParams();
@@ -19,6 +29,33 @@ const AdminDoubtDetail = () => {
   const [response, setResponse] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [missingAttachments, setMissingAttachments] = useState({}); // { [url]: true }
+
+  // Helper to check if a URL exists
+  const checkUrlExists = async (url) => {
+    try {
+      const res = await fetch(url, { method: 'HEAD' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // Check all attachment URLs on load
+  useEffect(() => {
+    if (!doubt || !doubt.attachments || !doubt.attachments.length) return;
+    const checkAll = async () => {
+      const missing = {};
+      for (const att of doubt.attachments) {
+        if (att.url && !missing[att.url]) {
+          const exists = await checkUrlExists(att.url);
+          if (!exists) missing[att.url] = true;
+        }
+      }
+      setMissingAttachments(missing);
+    };
+    checkAll();
+  }, [doubt]);
 
   const fetchDoubt = async () => {
     setLoading(true);
@@ -117,19 +154,68 @@ const AdminDoubtDetail = () => {
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-800 mb-2">Attachments</h2>
             <ul className="flex flex-wrap gap-4">
-              {doubt.attachments.map((att, idx) => (
-                <li key={idx} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                  <Paperclip className="w-4 h-4 text-indigo-400" />
-                  <a
-                    href={att.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:underline text-sm font-medium"
-                  >
-                    {att.filename}
-                  </a>
-                </li>
-              ))}
+              {doubt.attachments.map((att, idx) => {
+                const url = att.url;
+                const filename = att.filename || `Attachment ${idx + 1}`;
+                const ext = filename.split('.').pop()?.toLowerCase() || '';
+                const isPdf = ext === 'pdf';
+                return (
+                  <span key={idx} className="flex items-center gap-2">
+                    {url && !missingAttachments[url] ? (
+                      <>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={async (e) => {
+                            if (!url) {
+                              e.preventDefault();
+                              alert('File URL is missing or invalid.');
+                              return;
+                            }
+                            const exists = await checkUrlExists(url);
+                            if (!exists) {
+                              e.preventDefault();
+                              alert('File not found or has been deleted from the server.');
+                              return;
+                            }
+                            if (isPdf && !e.ctrlKey && !e.metaKey) {
+                              e.preventDefault();
+                              const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                              const win = window.open(viewerUrl, '_blank', 'noopener,noreferrer');
+                              setTimeout(() => {
+                                if (win && win.closed) return;
+                                if (win && win.document && win.document.body && win.document.body.innerText.includes('No preview available')) {
+                                  alert('Preview not available. The file will be downloaded instead.');
+                                  window.open(url, '_blank', 'noopener,noreferrer');
+                                }
+                              }, 3000);
+                            }
+                          }}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 border border-indigo-500/20`}
+                          aria-label={`Preview ${filename}`}
+                        >
+                          <Paperclip className="w-4 h-4 mr-1.5" />
+                          {filename}
+                        </a>
+                        <a
+                          href={url}
+                          download={filename}
+                          className="inline-flex items-center px-2 py-1 rounded bg-slate-700 text-slate-200 hover:bg-slate-600 text-xs font-medium border border-slate-600 ml-1"
+                          aria-label={`Download ${filename}`}
+                        >
+                          <FileDown className="w-4 h-4 mr-1" /> Download
+                        </a>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 cursor-not-allowed">
+                        <Paperclip className="w-4 h-4 mr-1.5" />
+                        {filename} (Attachment missing or deleted)
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
             </ul>
           </div>
         )}
