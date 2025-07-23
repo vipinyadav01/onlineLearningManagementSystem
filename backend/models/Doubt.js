@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const DoubtSchema = new mongoose.Schema({
   title: {
@@ -48,5 +49,7 @@ const DoubtSchema = new mongoose.Schema({
     default: null,
   },
 });
+
+DoubtSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Doubt', DoubtSchema);

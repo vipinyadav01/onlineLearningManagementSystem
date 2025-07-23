@@ -24,7 +24,7 @@ const fetchData = async () => {
       _id: doubt._id,
       doubtId: doubt._id,
       courseId: doubt.order?._id || 'N/A',
-      courseTitle: doubt.order?.courseTitle || doubt.order?.productName || 'N/A',
+      courseTitle: doubt.courseTitle || doubt.order?.courseTitle || doubt.order?.productName || 'N/A',
       userId: doubt.user?._id || 'N/A',
       userEmail: doubt.user?.email || 'N/A',
       userName: doubt.user?.name || 'Unknown',
@@ -167,9 +167,9 @@ const fetchData = async () => {
   const resolvedDoubts = doubts.filter(d => d.status === 'resolved').length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-100">
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard
             icon={MessageSquare}
             title="Total Doubts"
@@ -189,64 +189,62 @@ const fetchData = async () => {
             color="text-emerald-600"
           />
         </div>
-        <div className="bg-white shadow-md rounded-xl overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b flex items-center space-x-2">
-            <MessageSquare size={20} className="text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-800">Doubt Details</h2>
+        <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200">
+          <div className="p-6 bg-gradient-to-r from-indigo-50 to-white border-b flex items-center space-x-2">
+            <MessageSquare size={24} className="text-indigo-600" />
+            <h2 className="text-xl font-bold text-gray-800">Doubt Details</h2>
           </div>
           {loading ? (
-            <div className="p-4">
+            <div className="p-6">
               <SkeletonLoader />
             </div>
           ) : error ? (
             <ErrorDisplay />
           ) : doubts.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doubt ID</th>
-                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Title</th>
-                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Name</th>
-                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <div className="flex items-center space-x-1">
-                          <Calendar size={14} />
-                          <span>Created At</span>
-                        </div>
-                      </th>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead className="bg-indigo-50">
+                  <tr>
+                    <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Doubt ID</th>
+                    <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Course Title</th>
+                    <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User Name</th>
+                    <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <div className="flex items-center space-x-1">
+                        <Calendar size={14} />
+                        <span>Created At</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {doubts.map(doubt => (
+                    <tr
+                      key={doubt._id}
+                      className="hover:bg-indigo-50 transition-colors duration-200 cursor-pointer group"
+                      onClick={() => navigate(`/admin/doubts/${doubt._id}`)}
+                    >
+                      <td className="p-4 whitespace-nowrap text-sm font-semibold text-indigo-700 group-hover:underline">
+                        {doubt.doubtId}
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-sm text-gray-700 font-medium">
+                        {doubt.courseTitle}
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-sm text-gray-600">
+                        {doubt.userName}
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-sm font-semibold capitalize">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${doubt.status === 'pending' ? 'bg-amber-100 text-amber-700' : doubt.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>{doubt.status.replace('_', ' ')}</span>
+                      </td>
+                      <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                        {doubt.date.toLocaleString()}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {doubts.map(doubt => (
-                      <tr
-                        key={doubt._id}
-                        className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
-                        onClick={() => navigate(`/admin/doubts/${doubt._id}`)}
-                      >
-                        <td className="p-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {doubt.doubtId}
-                        </td>
-                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                          {doubt.courseTitle}
-                        </td>
-                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                          {doubt.userName}
-                        </td>
-                        <td className="p-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                          {doubt.status.replace('_', ' ')}
-                        </td>
-                        <td className="p-4 whitespace-nowrap text-sm text-gray-500">
-                          {doubt.date.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
               <PaginationControls />
-            </>
+            </div>
           ) : (
             <EmptyState />
           )}

@@ -146,6 +146,13 @@ const createDoubt = async (req, res) => {
       // Process each file
       for (const file of req.files) {
         try {
+          // Log file info for debugging
+          console.log('Uploading file:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size
+          });
+
           // Validate file size
           if (file.size > 5 * 1024 * 1024) {
             return res.status(400).json({
@@ -166,7 +173,11 @@ const createDoubt = async (req, res) => {
                 folder: 'doubts',
               },
               (error, result) => {
-                if (error) return reject(error);
+                if (error) {
+                  console.error('Cloudinary upload error:', error);
+                  return reject(error);
+                }
+                console.log('Cloudinary upload result:', result);
                 resolve(result);
               }
             );
@@ -181,7 +192,7 @@ const createDoubt = async (req, res) => {
             size: file.size,
           });
         } catch (uploadError) {
-          console.error('Cloudinary upload error:', uploadError);
+          console.error('Cloudinary upload error (catch):', uploadError);
           await cleanupUploads(attachments);
           return res.status(500).json({
             success: false,
@@ -365,7 +376,12 @@ const getAllDoubtsAdmin = async (req, res) => {
         },
         { 
           path: 'order', 
-          select: 'orderNumber productName courseTitle', 
+          select: 'orderNumber productName courseId', 
+          populate: {
+            path: 'courseId',
+            select: 'title',
+            options: { lean: true }
+          },
           options: { lean: true } 
         }
       ],
@@ -380,6 +396,8 @@ const getAllDoubtsAdmin = async (req, res) => {
         ...doubt,
         user: doubt.user || { name: 'Unknown', email: 'N/A' },
         order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
+        // Add courseTitle for admin panel display
+        courseTitle: doubt.order && doubt.order.courseId && doubt.order.courseId.title ? doubt.order.courseId.title : 'N/A',
         attachments: doubt.attachments?.map(att => ({
           url: att.url,
           filename: att.filename,

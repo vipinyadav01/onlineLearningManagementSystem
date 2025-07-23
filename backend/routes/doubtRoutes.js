@@ -88,29 +88,29 @@ router.get(
 // Admin routes
 router.get(
   '/admin',
-  adminMiddleware,   
   authMiddleware,
+  adminMiddleware,
   getAllDoubtsAdmin
 );
 
 router.get(
   '/admin/single/:id',  
-  adminMiddleware,
   authMiddleware,
+  adminMiddleware,
   getSingleDoubtAdmin
 );
 
 router.put(
   '/admin/:id',
-  adminMiddleware,   
   authMiddleware,
+  adminMiddleware,
   updateDoubtAdmin
 );
 
 router.get(
   '/admin/stats', 
-  adminMiddleware,  
   authMiddleware,
+  adminMiddleware,
   getDoubtStatsAdmin
 );
 

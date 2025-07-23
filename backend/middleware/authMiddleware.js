@@ -15,7 +15,7 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('_id email role');
+    const user = await User.findById(decoded.id).select('_id email isAdmin');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -23,7 +23,7 @@ const authMiddleware = async (req, res, next) => {
         code: 'USER_NOT_FOUND'
       });
     }
-    req.user = { id: user._id, email: user.email, role: user.role || 'user' };
+    req.user = { id: user._id, email: user.email, role: user.isAdmin ? 'admin' : 'user' };
     next();
   } catch (error) {
     console.error('Authentication error:', {

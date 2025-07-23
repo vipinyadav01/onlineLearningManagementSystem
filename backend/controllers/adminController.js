@@ -27,8 +27,22 @@ exports.adminLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Use createToken for consistency and include an admin ID
-    const token = createToken('admin-user', 'admin');
+    // Find or create the admin user
+    let adminUser = await User.findOne({ email: adminEmail });
+    if (!adminUser) {
+      adminUser = await User.create({
+        name: 'Admin',
+        email: adminEmail,
+        password: adminPassword, // This should be hashed if not already
+        isAdmin: true
+      });
+    } else if (!adminUser.isAdmin) {
+      adminUser.isAdmin = true;
+      await adminUser.save();
+    }
+
+    // Use the real ObjectId in the token
+    const token = createToken(adminUser._id, 'admin');
 
     // Set token expiry time for frontend reference
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
