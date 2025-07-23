@@ -130,7 +130,7 @@ const fetchData = React.useCallback(async () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-50 to-indigo-100">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
       </div>
     );
@@ -138,27 +138,28 @@ const fetchData = React.useCallback(async () => {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto p-4">
-        <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-8 rounded-2xl shadow-lg">
-          <div className="flex items-center">
-            <AlertCircle className="h-8 w-8 mr-4 text-red-500" />
-            <p className="text-lg font-medium">{error}</p>
-          </div>
-          <button
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-100 px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md w-full border border-red-200 animate-fade-in">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4 animate-bounce" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Something went wrong</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button 
             onClick={fetchData}
-            className="mt-6 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-xl"
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center justify-center shadow-md hover:shadow-xl"
           >
-            <RefreshCw className="h-5 w-5 mr-2" />
-            Retry
+            <RefreshCw className="mr-2 h-5 w-5 animate-spin-slow" /> Retry
           </button>
         </div>
       </div>
     );
   }
 
+  // Defensive: handle empty or missing stats
+  const hasStats = stats && Array.isArray(stats.stats) && stats.stats.length > 0;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg backdrop-blur-lg backdrop-filter">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-gradient-to-br from-gray-50 to-indigo-100 min-h-screen animate-fade-in">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl backdrop-blur-lg backdrop-filter border border-gray-200">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <h2 className="text-2xl font-bold text-gray-800">Statistics Overview</h2>
           <select
@@ -173,75 +174,77 @@ const fetchData = React.useCallback(async () => {
           </select>
         </div>
       </div>
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="flex items-center space-x-6">
-              <div className="p-4 rounded-2xl bg-indigo-100 text-indigo-600">
-                <BarChart2 size={32} />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-lg font-medium">Total Doubts</h3>
-                <p className="text-4xl font-bold text-gray-800 mt-2">{stats.total || 0}</p>
-              </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* Card: Total Doubts */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in flex flex-col gap-4">
+          <div className="flex items-center gap-6">
+            <div className="p-4 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+              <BarChart2 size={32} />
             </div>
-          </div>
-          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="flex items-center space-x-6">
-              <div className="p-4 rounded-2xl bg-emerald-100 text-emerald-600">
-                <PieChart size={32} />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-lg font-medium">Resolved</h3>
-                <p className="text-4xl font-bold text-emerald-600 mt-2">{stats.resolved || 0}</p>
-                <p className="text-base text-gray-500 mt-2">{stats.resolutionRate || 0}% resolution rate</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="flex items-center space-x-6">
-              <div className="p-4 rounded-2xl bg-amber-100 text-amber-600">
-                <LineChart size={32} />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-lg font-medium">Pending</h3>
-                <p className="text-4xl font-bold text-amber-600 mt-2">{stats.pending || 0}</p>
-                <p className="text-base text-gray-500 mt-2">
-                  {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% of total
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="flex items-center space-x-6">
-              <div className="p-4 rounded-2xl bg-indigo-100 text-indigo-600">
-                <Clock size={32} />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-lg font-medium">In Progress</h3>
-                <p className="text-4xl font-bold text-indigo-600 mt-2">{stats.inProgress || 0}</p>
-                <p className="text-base text-gray-500 mt-2">
-                  {stats.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}% of total
-                </p>
-              </div>
+            <div>
+              <h3 className="text-gray-500 text-lg font-medium">Total Doubts</h3>
+              <p className="text-4xl font-bold text-gray-800 mt-2">{stats?.total ?? 0}</p>
             </div>
           </div>
         </div>
-      )}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-        <div className="h-[400px]">
-          {stats && stats.stats?.length > 0 ? (
+        {/* Card: Resolved */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in flex flex-col gap-4">
+          <div className="flex items-center gap-6">
+            <div className="p-4 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <PieChart size={32} />
+            </div>
+            <div>
+              <h3 className="text-gray-500 text-lg font-medium">Resolved</h3>
+              <p className="text-4xl font-bold text-emerald-600 mt-2">{stats?.resolved ?? 0}</p>
+              <p className="text-base text-gray-500 mt-2">{stats?.resolutionRate ?? 0}% resolution rate</p>
+            </div>
+          </div>
+        </div>
+        {/* Card: Pending */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in flex flex-col gap-4">
+          <div className="flex items-center gap-6">
+            <div className="p-4 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+              <LineChart size={32} />
+            </div>
+            <div>
+              <h3 className="text-gray-500 text-lg font-medium">Pending</h3>
+              <p className="text-4xl font-bold text-amber-600 mt-2">{stats?.pending ?? 0}</p>
+              <p className="text-base text-gray-500 mt-2">
+                {stats?.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% of total
+              </p>
+            </div>
+          </div>
+        </div>
+        {/* Card: In Progress */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 animate-fade-in flex flex-col gap-4">
+          <div className="flex items-center gap-6">
+            <div className="p-4 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+              <Clock size={32} />
+            </div>
+            <div>
+              <h3 className="text-gray-500 text-lg font-medium">In Progress</h3>
+              <p className="text-4xl font-bold text-indigo-600 mt-2">{stats?.inProgress ?? 0}</p>
+              <p className="text-base text-gray-500 mt-2">
+                {stats?.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}% of total
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100 animate-fade-in">
+        <div className="h-[400px] flex items-center justify-center">
+          {hasStats ? (
             <canvas ref={chartRef}></canvas>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <BarChart2 size={48} className="mb-4" />
-              <p>No data available for the selected time range.</p>
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 animate-fade-in">
+              <BarChart2 size={48} className="mb-4 animate-bounce" />
+              <p className="text-lg font-semibold">No data available for the selected time range.</p>
             </div>
           )}
         </div>
       </div>
-      {stats && stats.stats?.length > 0 && (
-        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+      {hasStats && (
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100 animate-fade-in">
           <h3 className="text-2xl font-bold text-gray-800 mb-8">Status Distribution</h3>
           <div className="space-y-8">
             {stats.stats.map((item) => (
