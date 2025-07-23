@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAllCourses, getCourseById, createCourse, updateCourse, deleteCourse } = require('../controllers/courseController');
+const { getAllCourses, getCourseById, createCourse, updateCourse, deleteCourse, getCoursesWithCreators } = require('../controllers/courseController');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const multer = require('multer');
 const User = require('../models/User');
@@ -33,6 +33,9 @@ router.get('/:id', getCourseById);
 router.post('/', adminMiddleware, upload.single('image'), createCourse);
 router.put('/:id', adminMiddleware, upload.single('image'), updateCourse);
 router.delete('/:id', adminMiddleware, deleteCourse);
+
+// New route: get all courses with creator info
+router.get('/admin/with-creators', adminMiddleware, getCoursesWithCreators);
 
 // Enrollment route
 router.post('/:id/enroll', adminMiddleware, async (req, res) => {

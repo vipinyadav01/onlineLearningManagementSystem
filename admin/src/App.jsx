@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom"
 import axios from "axios"
-import { Home, Users, Book, LogOut, Menu, X, AlertCircle, ChevronRight, Bell, Settings, User,Layers2 } from "lucide-react"
+import { Home, Users, Book, LogOut, Menu, X, AlertCircle, ChevronRight, Bell, Settings, User,Layers2, BarChart2 } from "lucide-react"
 
 import Login from "./components/Login"
 import Dashboard from "./components/Dashboard"
@@ -11,6 +11,7 @@ import UserLogins from "./components/UserLogins"
 import UserEnrolled from "./components/UserEnrolled"
 import AdminCourses from "./pages/AdminCourses"
 import AdminDoubtDetail from './pages/AdminDoubtDetail';
+import CourseCreators from './pages/CourseCreators';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -204,6 +205,11 @@ const App = () => {
       path: "/admin-courses",
       icon: <Book className="w-5 h-5" />,
       label: "Courses",
+    },
+    {
+      path: "/admin/course-creators",
+      icon: <BarChart2 className="w-5 h-5" />,
+      label: "Course Creators",
     }
   ]
 
@@ -399,6 +405,16 @@ const App = () => {
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <AdminLayout>
                 <AdminDoubtDetail />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/course-creators"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <AdminLayout>
+                <CourseCreators />
               </AdminLayout>
             </ProtectedRoute>
           }

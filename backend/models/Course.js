@@ -65,6 +65,11 @@ const courseSchema = new mongoose.Schema({
     }],
   }],
   image: String,
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

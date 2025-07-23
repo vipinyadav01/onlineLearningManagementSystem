@@ -76,6 +76,7 @@ exports.createCourse = async (req, res) => {
       discount: req.body.discount ? parseFloat(req.body.discount) : undefined,
       isBestseller: req.body.isBestseller === 'true',
       isNew: req.body.isNew === 'true',
+      createdBy: req.user.id, // Set the creator to the current admin
     };
 
     const course = new Course(courseData);
@@ -192,6 +193,24 @@ exports.deleteCourse = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting course',
+      error: error.message,
+    });
+  }
+};
+
+// Get all courses with creator info (admin only)
+exports.getCoursesWithCreators = async (req, res) => {
+  try {
+    const courses = await Course.find().populate('createdBy', 'name email');
+    res.status(200).json({
+      success: true,
+      courses,
+    });
+  } catch (error) {
+    console.error('Get courses with creators error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching courses with creators',
       error: error.message,
     });
   }
