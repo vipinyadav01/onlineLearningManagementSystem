@@ -10,6 +10,7 @@ import Dashboard from "./components/Dashboard"
 import UserLogins from "./components/UserLogins"
 import UserEnrolled from "./components/UserEnrolled"
 import AdminCourses from "./pages/AdminCourses"
+import AdminDoubtDetail from './pages/AdminDoubtDetail';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -388,6 +389,16 @@ const App = () => {
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <AdminLayout>
                 <AdminCourses />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/doubts/:id"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <AdminLayout>
+                <AdminDoubtDetail />
               </AdminLayout>
             </ProtectedRoute>
           }

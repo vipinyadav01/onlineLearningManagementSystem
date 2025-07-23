@@ -452,7 +452,12 @@ const getSingleDoubtAdmin = async (req, res) => {
         },
         { 
           path: 'order', 
-          select: 'orderNumber productName courseTitle', 
+          select: 'orderNumber productName courseId', 
+          populate: {
+            path: 'courseId',
+            select: 'title',
+            options: { lean: true }
+          },
           options: { lean: true } 
         }
       ])
@@ -470,6 +475,7 @@ const getSingleDoubtAdmin = async (req, res) => {
       ...doubt,
       user: doubt.user || { name: 'Unknown', email: 'N/A' },
       order: doubt.order || { orderNumber: 'N/A', productName: 'N/A' },
+      courseTitle: doubt.order && doubt.order.courseId && doubt.order.courseId.title ? doubt.order.courseId.title : 'N/A',
       attachments: doubt.attachments?.map(att => ({
         url: att.url,
         filename: att.filename,
